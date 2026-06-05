@@ -694,6 +694,7 @@ class Game {
     }
     const idx = this.interactables.findIndex(i => i.id === plankId);
     if (idx >= 0) this.interactables.splice(idx, 1);
+    HouseBuilder.unplankDoor(doorId); // Tür ist jetzt öffenbar
     AudioManager.playHammerHit();
     this.showMessage('🪵 Holzplanken wurden entfernt!');
   }

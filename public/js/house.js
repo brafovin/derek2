@@ -235,7 +235,7 @@ const HouseBuilder = (() => {
   // =====================================================================
   // TÜRRAHMEN + TÜRBLATT (mit Pivot für Schwenkanimation)
   // =====================================================================
-  function buildDoor(scene, axis, pos, gap, doorId, plank) {
+  function buildDoor(scene, axis, pos, gap, doorId, plank, locked) {
     const [g1, g2] = gap;
     const dw  = g2 - g1;
     const mid = (g1+g2)/2;
@@ -270,7 +270,11 @@ const HouseBuilder = (() => {
 
     // Schwenkrichtung: positiv oder negativ je nach Achse
     const targetRot = axis==='x' ? -Math.PI/2 : Math.PI/2;
-    doorMeshes[doorId] = { pivot, targetRot, currentRot:0, colIdx, open:false };
+    doorMeshes[doorId] = {
+      pivot, targetRot, currentRot:0, colIdx, open:false,
+      locked: !!locked,
+      planked: !!plank
+    };
 
     interactables.push({ id:'door_'+doorId, x:cx, y:1.1, z:cz, type:'door', mesh:pivot, radius:1.8 });
 
@@ -308,6 +312,36 @@ const HouseBuilder = (() => {
       }
       d.colIdx = undefined;
     }
+  }
+
+  // Planke einer Tür als entfernt markieren (Hammer benutzt)
+  function unplankDoor(doorId) {
+    const d = doorMeshes[doorId];
+    if(d) d.planked = false;
+  }
+
+  // Clientseitiger Öffnungsversuch. inventory = Array von Item-Strings.
+  // Liefert: 'opened' | 'already' | 'locked' | 'planked'
+  function tryOpenDoor(doorId, inventory) {
+    const d = doorMeshes[doorId];
+    if(!d) { return 'opened'; }          // Unbekannt → einfach öffnen
+    if(d.open) return 'already';
+    if(d.planked) return 'planked';      // erst Planken mit Hammer entfernen
+    if(d.locked) {
+      if(inventory && inventory.includes('key')) {
+        d.locked = false;
+        openDoor(doorId);
+        return 'opened';
+      }
+      return 'locked';
+    }
+    openDoor(doorId);
+    return 'opened';
+  }
+
+  function isDoorOpen(doorId) {
+    const d = doorMeshes[doorId];
+    return d ? d.open : false;
   }
 
   function updateDoors(dt) {
@@ -535,7 +569,7 @@ const HouseBuilder = (() => {
     for(const d of DOOR_DEFS){
       buildWallWithGap(scene, d.axis, d.pos, d.span, d.gap, wm);
       if(d.gap){
-        buildDoor(scene, d.axis, d.pos, d.gap, d.id, d.plank);
+        buildDoor(scene, d.axis, d.pos, d.gap, d.id, d.plank, d.locked);
       }
     }
 
@@ -647,7 +681,7 @@ const HouseBuilder = (() => {
   // =====================================================================
   // PUBLIC API
   // =====================================================================
-  return { build, updateFlicker, updateDoors, openDoor, buildItemMesh, interactables, hidingSpots, collisionWalls };
+  return { build, updateFlicker, updateDoors, openDoor, tryOpenDoor, unplankDoor, isDoorOpen, buildItemMesh, interactables, hidingSpots, collisionWalls };
 })();
 
 // Kompatibilität: addItem

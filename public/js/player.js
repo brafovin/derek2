@@ -84,16 +84,31 @@ class Player {
 
     if (nearest.type === 'item') {
       window.game.network.pickupItem(nearest.id);
-    } else if (nearest.type === 'door' || nearest.type === 'plank' || nearest.type === 'exit') {
+    } else if (nearest.type === 'door') {
+      const activeItem = this.inventory[this.activeSlot];
+      const doorId = nearest.id.replace('door_', '');
+      // Sofort clientseitig öffnen (robust, unabhängig vom Server)
+      const status = HouseBuilder.tryOpenDoor(doorId, this.inventory);
+      if (status === 'opened') {
+        AudioManager.playDoorCreak();
+        window.game.network.useItem(activeItem || null, nearest.id);
+        window.game.network.makeNoise(this.pos.x, this.pos.z, 5);
+      } else if (status === 'locked') {
+        window.game.showMessage('🔒 Abgeschlossen – du brauchst einen Schlüssel', 2000, '#ffaa00');
+        AudioManager.tone(120, 0.15, 'square', 0.2);
+      } else if (status === 'planked') {
+        window.game.showMessage('🪵 Verbarrikadiert – entferne die Planken mit dem Hammer', 2500, '#ffaa00');
+        AudioManager.tone(120, 0.15, 'square', 0.2);
+      }
+    } else if (nearest.type === 'plank') {
       const activeItem = this.inventory[this.activeSlot];
       window.game.network.useItem(activeItem || null, nearest.id);
-      if (nearest.type === 'door' || nearest.type === 'plank') {
-        AudioManager.playDoorCreak();
-        window.game.network.makeNoise(this.pos.x, this.pos.z, 5);
-      }
-      if (nearest.type === 'exit') {
-        window.game.tryEscape();
-      }
+      AudioManager.playDoorCreak();
+      window.game.network.makeNoise(this.pos.x, this.pos.z, 5);
+    } else if (nearest.type === 'exit') {
+      const activeItem = this.inventory[this.activeSlot];
+      window.game.network.useItem(activeItem || null, nearest.id);
+      window.game.tryEscape();
     } else if (nearest.type === 'wardrobe') {
       this._toggleHide(nearest.id);
     }
