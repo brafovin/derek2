@@ -164,8 +164,8 @@ io.on('connection', (socket) => {
       }
     }
 
-    // Open any unlocked, non-planked door (no item needed)
-    if (targetId.startsWith('door_') && !itemId) {
+    // Open any unlocked, non-planked door with E (regardless of held item)
+    if (targetId.startsWith('door_')) {
       const doorKey = targetId.replace('door_', '');
       const door = room.doors[doorKey];
       const canOpen = !door                                           // not tracked = freely openable
