@@ -52,6 +52,21 @@ class Game {
     });
   }
 
+  _buildFallbackScene() {
+    // Einfaches sichtbares Zimmer als Notfall
+    const m = new THREE.MeshBasicMaterial({ color: 0x553322, side: THREE.DoubleSide });
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.MeshBasicMaterial({ color: 0x332211, side: THREE.DoubleSide }));
+    floor.rotation.x = -Math.PI / 2;
+    this.scene.add(floor);
+    [[-10,2,0],[10,2,0],[0,2,-10],[0,2,10]].forEach(([x,y,z]) => {
+      const wall = new THREE.Mesh(new THREE.PlaneGeometry(20, 4), m);
+      wall.position.set(x, y, z);
+      if (x !== 0) wall.rotation.y = Math.PI / 2;
+      this.scene.add(wall);
+    });
+    this.scene.add(new THREE.AmbientLight(0xffffff, 1));
+  }
+
   _setupScene() {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x0a0604);
@@ -204,20 +219,51 @@ class Game {
   onJoinedRoom(data) {
     const roomState = data.roomState;
 
-    // Build the house
-    const result = HouseBuilder.build(this.scene);
+    // Fehler-Handler für Build
+    window.onerror = (msg, src, line) => {
+      document.getElementById('timer-display').textContent = `JS FEHLER: ${msg} Zeile ${line}`;
+    };
+
+    // Garantiert-sichtbarer Test-Würfel direkt vor Kamera (für Debug)
+    const testMat = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
+    const testCube = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), testMat);
+    testCube.position.set(0, 1.5, -2);
+    testCube.userData.isTestCube = true;
+    this.scene.add(testCube);
+    this._testCube = testCube;
+
+    // Build the house mit Fehlerbehandlung
+    let result;
+    try {
+      result = HouseBuilder.build(this.scene);
+      // Test-Würfel entfernen wenn Haus erfolgreich geladen
+      setTimeout(() => {
+        if (this._testCube) {
+          this.scene.remove(this._testCube);
+          this._testCube = null;
+        }
+      }, 3000);
+    } catch(e) {
+      console.error('House Build FEHLER:', e);
+      document.getElementById('timer-display').textContent = `BUILD FEHLER: ${e.message}`;
+      // Notfall-Szene: leuchtende Wände
+      this._buildFallbackScene();
+      result = { interactables: [], hidingSpots: [] };
+    }
     this.interactables = result.interactables;
     this.hidingSpots = result.hidingSpots;
 
     // Place items from server state
     roomState.items.forEach(item => {
       if (!item.pickedUp) {
-        const mesh = HouseBuilder.addItem(this.scene, item);
-        this.itemMeshes[item.id] = mesh;
-        this.interactables.push({
-          id: item.id, x: item.x, y: item.y, z: item.z,
-          type: 'item', itemType: item.type, mesh, radius: 1.5
-        });
+        try {
+          const mesh = HouseBuilder.addItem(this.scene, item);
+          this.itemMeshes[item.id] = mesh;
+          this.interactables.push({
+            id: item.id, x: item.x, y: item.y, z: item.z,
+            type: 'item', itemType: item.type, mesh, radius: 1.5
+          });
+        } catch(e) { console.warn('Item Fehler:', e); }
       }
     });
 

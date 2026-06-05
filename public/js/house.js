@@ -169,14 +169,15 @@ const HouseBuilder = (() => {
     const t = textures.wall.clone();
     t.needsUpdate = true;
     t.repeat.set(repeat, 1);
-    return new THREE.MeshLambertMaterial({ map: t, side: THREE.FrontSide });
+    // DoubleSide: innen UND aussen sichtbar; BasicMaterial braucht KEIN Licht
+    return new THREE.MeshBasicMaterial({ map: t, side: THREE.DoubleSide });
   }
 
   function makeFloorMat(repeat = 4) {
     const t = textures.floor.clone();
     t.needsUpdate = true;
     t.repeat.set(repeat, repeat);
-    return new THREE.MeshLambertMaterial({ map: t });
+    return new THREE.MeshBasicMaterial({ map: t, side: THREE.DoubleSide });
   }
 
   function box(scene, w, h, d, x, y, z, mat, castShadow=true) {
@@ -193,7 +194,7 @@ const HouseBuilder = (() => {
     const y = h / 2;
     const wm = makeWallMat(width / 3);
     const fm = makeFloorMat(width / 3);
-    const cm = new THREE.MeshLambertMaterial({ map: textures.ceiling });
+    const cm = new THREE.MeshBasicMaterial({ map: textures.ceiling, side: THREE.DoubleSide });
 
     // Floor
     box(scene, width, 0.1, depth, x, 0.05, z, fm, false);
@@ -523,14 +524,18 @@ const HouseBuilder = (() => {
     // Attic access door (with planks!)
     addDoor(scene, 11.4, 0, -5, Math.PI/2, 'attic', true);
 
-    // ========== VERWÜSTUNG - Schutt, Trümmer, Blut ==========
-    addWreckage(scene);
-
-    // ========== LIGHTING ==========
+    // ========== LIGHTING ZUERST (bevor Wreckage evtl. Fehler wirft) ==========
     addLighting(scene);
 
     // ========== EXIT DOOR ==========
     addExitDoor(scene);
+
+    // ========== VERWÜSTUNG (in try/catch damit Fehler das Spiel nicht blockieren) ==========
+    try {
+      addWreckage(scene);
+    } catch(e) {
+      console.error('Wreckage Fehler (ignoriert):', e);
+    }
 
     return { interactables, hidingSpots };
   }
