@@ -91,6 +91,25 @@ class Game {
       document.getElementById('create-room-info').style.display = 'flex';
       document.getElementById('room-input').style.display = 'none';
       document.getElementById('btn-start-created').dataset.roomId = code;
+      // Teilbaren Einladungs-Link erzeugen
+      const link = location.origin + location.pathname + '?room=' + code;
+      document.getElementById('invite-link-input').value = link;
+    });
+
+    document.getElementById('btn-copy-link').addEventListener('click', async () => {
+      const link = document.getElementById('invite-link-input').value;
+      const btn = document.getElementById('btn-copy-link');
+      try {
+        await navigator.clipboard.writeText(link);
+      } catch (e) {
+        // Fallback: Text markieren und kopieren
+        const inp = document.getElementById('invite-link-input');
+        inp.focus(); inp.select();
+        try { document.execCommand('copy'); } catch (e2) {}
+      }
+      btn.textContent = '✅ KOPIERT!';
+      AudioManager.playPickup();
+      setTimeout(() => { btn.textContent = '🔗 LINK KOPIEREN'; }, 1800);
     });
 
     document.getElementById('btn-start-created').addEventListener('click', () => {
@@ -189,6 +208,18 @@ class Game {
     document.getElementById('main-menu').style.display = 'flex';
     this.state = 'menu';
     AudioManager.playAmbient();
+
+    // Wenn die URL einen Raum-Code enthält (?room=CODE), Beitritts-Feld
+    // vorbereiten und Code automatisch eintragen
+    const params = new URLSearchParams(location.search);
+    const room = (params.get('room') || '').trim().toUpperCase();
+    if (room) {
+      document.getElementById('room-input').style.display = 'flex';
+      document.getElementById('create-room-info').style.display = 'none';
+      document.getElementById('room-code-input').value = room;
+      document.getElementById('player-name-input').focus();
+      this.showMessage('🔗 Einladung erkannt – gib deinen Namen ein und tritt bei!', 4000, '#aa66ff');
+    }
   }
 
   _showLoading() {

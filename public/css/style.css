@@ -75,12 +75,46 @@ body {
 /* ===== MAIN MENU ===== */
 #main-menu {
   position: fixed; inset: 0;
-  background: #0a0000;
+  background:
+    radial-gradient(ellipse at 50% 40%, #1a0303 0%, #0a0000 55%, #000 100%);
   z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+}
+
+/* Dunkle, pulsierende Vignette über dem ganzen Menü */
+#main-menu::after {
+  content: '';
+  position: absolute; inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  background: radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.85) 95%);
+  animation: vignette-pulse 5s ease-in-out infinite;
+}
+
+@keyframes vignette-pulse {
+  0%,100% { opacity: 0.85; }
+  50%     { opacity: 1; }
+}
+
+/* Kriechender Nebel von unten */
+#main-menu::before {
+  content: '';
+  position: absolute;
+  left: -20%; right: -20%; bottom: -10%;
+  height: 50%;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(ellipse at 50% 100%, rgba(80,0,0,0.25) 0%, transparent 70%);
+  filter: blur(20px);
+  animation: fog-drift 12s ease-in-out infinite alternate;
+}
+
+@keyframes fog-drift {
+  0%   { transform: translateX(-6%) scaleY(1); opacity: 0.7; }
+  100% { transform: translateX(6%) scaleY(1.15); opacity: 1; }
 }
 
 #menu-bg-flicker {
@@ -131,7 +165,8 @@ body {
 
 #menu-container {
   text-align: center;
-  z-index: 2;
+  position: relative;
+  z-index: 5;
 }
 
 #game-title {
@@ -155,15 +190,29 @@ body {
 .title-letter:nth-child(6) { animation-delay: 0.75s; }
 
 @keyframes title-pulse {
-  0%,100% { transform: scale(1); filter: brightness(1); }
-  50%      { transform: scale(1.05); filter: brightness(1.5); }
+  0%,100%  { transform: scale(1) translate(0,0); filter: brightness(1); }
+  48%      { transform: scale(1.04); filter: brightness(1.4); }
+  50%      { transform: scale(1.04) translate(3px,-2px); filter: brightness(2.2) hue-rotate(-15deg); }
+  52%      { transform: scale(1.04) translate(-3px,1px); filter: brightness(1.4); }
+}
+
+/* Gelegentliches Blut-Glitch-Zucken über dem ganzen Titel */
+#game-title {
+  animation: title-glitch 6s steps(1) infinite;
+}
+@keyframes title-glitch {
+  0%, 92%, 100% { filter: none; transform: none; }
+  93%  { transform: translate(-4px, 2px) skewX(-6deg); filter: brightness(1.8) drop-shadow(3px 0 #00ffff) drop-shadow(-3px 0 #ff0000); }
+  95%  { transform: translate(4px, -1px) skewX(4deg);   filter: brightness(0.6); }
+  97%  { transform: none; filter: brightness(2); }
 }
 
 #subtitle {
   font-size: 1.3rem;
-  color: #888;
+  color: #aa4444;
   letter-spacing: 0.2em;
   margin-bottom: 3rem;
+  text-shadow: 0 0 8px #660000;
   animation: blink 1.5s infinite;
 }
 
@@ -231,20 +280,84 @@ body {
   text-shadow: 0 0 10px #ff0000;
 }
 
-#granny-silhouette {
-  position: absolute;
-  right: -50px;
-  bottom: 0;
-  width: 300px;
-  height: 500px;
-  background: radial-gradient(ellipse at 50% 100%, #1a0000 30%, transparent 70%);
-  filter: blur(2px);
-  animation: granny-breathe 3s ease-in-out infinite;
+/* Einladungs-Link */
+#invite-link-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+  width: 100%;
 }
 
-@keyframes granny-breathe {
-  0%,100% { transform: scaleY(1); }
-  50%      { transform: scaleY(1.02); }
+#invite-link-input {
+  background: #150000 !important;
+  border: 1px solid #800 !important;
+  color: #ff9999 !important;
+  font-size: 0.85rem !important;
+  width: 300px !important;
+  cursor: text;
+}
+
+.menu-btn.small {
+  font-size: 0.95rem;
+  padding: 0.5rem 1.4rem;
+  min-width: 0;
+}
+
+#invite-hint {
+  color: #997777;
+  font-size: 0.8rem;
+  font-style: italic;
+  max-width: 320px;
+  text-align: center;
+}
+
+#granny-silhouette {
+  position: absolute;
+  right: 4%;
+  bottom: 0;
+  width: 240px;
+  height: 480px;
+  z-index: 2;
+  pointer-events: none;
+  /* Dunkle, gebeugte Gestalt aus Verläufen */
+  background:
+    radial-gradient(ellipse 70px 90px at 50% 12%, #050505 60%, transparent 72%),   /* Kopf */
+    radial-gradient(ellipse 130px 200px at 50% 70%, #050505 55%, transparent 75%), /* Körper */
+    radial-gradient(ellipse 180px 120px at 50% 100%, #080000 40%, transparent 70%);/* Saum */
+  filter: blur(3px);
+  opacity: 0;
+  animation: granny-lurk 14s ease-in-out infinite;
+}
+
+/* Glühende rote Augen, die aus der Silhouette starren */
+#granny-silhouette::before,
+#granny-silhouette::after {
+  content: '';
+  position: absolute;
+  top: 11%;
+  width: 9px; height: 12px;
+  border-radius: 50%;
+  background: #ff1100;
+  box-shadow: 0 0 12px 4px #ff0000, 0 0 24px 8px rgba(255,0,0,0.5);
+  animation: eye-flicker 0.4s steps(2) infinite;
+}
+#granny-silhouette::before { left: 44%; }
+#granny-silhouette::after  { left: 52%; }
+
+@keyframes eye-flicker {
+  0%,100% { opacity: 1; }
+  50%     { opacity: 0.55; }
+}
+
+/* Granny taucht langsam aus dem Dunkel auf, lauert, verschwindet wieder */
+@keyframes granny-lurk {
+  0%   { opacity: 0;   transform: translateX(30px) scaleY(1); }
+  35%  { opacity: 0.9; transform: translateX(0)    scaleY(1); }
+  45%  { opacity: 0.9; transform: translateX(0)    scaleY(1.03); }
+  55%  { opacity: 0.95;transform: translateX(-6px) scaleY(1); }
+  75%  { opacity: 0.85;transform: translateX(0)    scaleY(1.03); }
+  100% { opacity: 0;   transform: translateX(30px) scaleY(1); }
 }
 
 /* ===== LOADING ===== */
