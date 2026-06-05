@@ -88,11 +88,13 @@ class Game {
     // Main menu buttons
     document.getElementById('btn-solo').addEventListener('click', () => {
       AudioManager.resume();
+      document.body.classList.add('mode-chosen');
       this._joinSolo();
     });
 
     document.getElementById('btn-create').addEventListener('click', () => {
       AudioManager.resume();
+      document.body.classList.add('mode-chosen');
       const code = Math.random().toString(36).slice(2, 8).toUpperCase();
       document.getElementById('room-code-display').textContent = '🔑 CODE: ' + code;
       document.getElementById('create-room-info').style.display = 'flex';
@@ -127,6 +129,7 @@ class Game {
 
     document.getElementById('btn-join').addEventListener('click', () => {
       AudioManager.resume();
+      document.body.classList.add('mode-chosen');
       document.getElementById('room-input').style.display = 'flex';
       document.getElementById('create-room-info').style.display = 'none';
     });

@@ -178,9 +178,56 @@ body {
 
 .title-letter {
   display: inline-block;
+  position: relative;
   color: #cc0000;
   text-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000, 2px 2px 0 #000;
   animation: title-pulse 2s ease-in-out infinite;
+}
+
+/* Blut, das aus jedem Buchstaben herabfließt */
+.title-letter::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 0.05em;
+  width: 6px;
+  transform: translateX(-50%);
+  background: linear-gradient(to bottom, #c50000 0%, #8b0000 60%, #5a0000 100%);
+  border-radius: 0 0 3px 3px;
+  box-shadow: 0 0 6px rgba(200,0,0,0.7);
+  height: 0;
+  animation: letter-blood 5s ease-in infinite;
+}
+.title-letter::before {
+  content: '';
+  position: absolute;
+  left: 30%;
+  bottom: 0.1em;
+  width: 4px;
+  transform: translateX(-50%);
+  background: linear-gradient(to bottom, #b00000, #6a0000);
+  border-radius: 0 0 2px 2px;
+  height: 0;
+  animation: letter-blood 5s ease-in infinite;
+}
+.title-letter:nth-child(1)::after { animation-delay: 0.2s; }
+.title-letter:nth-child(2)::after { animation-delay: 1.4s; }
+.title-letter:nth-child(3)::after { animation-delay: 0.8s; }
+.title-letter:nth-child(4)::after { animation-delay: 2.1s; }
+.title-letter:nth-child(5)::after { animation-delay: 1.0s; }
+.title-letter:nth-child(6)::after { animation-delay: 2.6s; }
+.title-letter:nth-child(1)::before { animation-delay: 2.0s; }
+.title-letter:nth-child(2)::before { animation-delay: 0.6s; }
+.title-letter:nth-child(3)::before { animation-delay: 3.0s; }
+.title-letter:nth-child(4)::before { animation-delay: 1.2s; }
+.title-letter:nth-child(5)::before { animation-delay: 2.4s; }
+.title-letter:nth-child(6)::before { animation-delay: 0.4s; }
+
+@keyframes letter-blood {
+  0%   { height: 0;     opacity: 0; }
+  10%  { opacity: 1; }
+  70%  { height: 1.1em; opacity: 1; }
+  100% { height: 1.5em; opacity: 0; }
 }
 .title-letter:nth-child(1) { animation-delay: 0s; }
 .title-letter:nth-child(2) { animation-delay: 0.15s; }
@@ -316,6 +363,131 @@ body {
   transition: all 0.2s;
 }
 #btn-copy-game-link:hover { background: #cc0000; color: #000; }
+
+/* Abgetrennter Kopf – sichtbar bis ein Modus gewählt wird */
+#severed-head {
+  position: absolute;
+  left: 50%;
+  bottom: 4%;
+  transform: translateX(-50%);
+  z-index: 4;
+  pointer-events: none;
+  transition: opacity 0.6s, transform 0.6s;
+}
+/* Wird ausgeblendet, sobald ein Modus gewählt wurde */
+.mode-chosen #severed-head {
+  opacity: 0;
+  transform: translateX(-50%) translateY(40px) scale(0.8);
+}
+
+.sh-blood-pool {
+  position: absolute;
+  left: 50%; bottom: -10px;
+  transform: translateX(-50%);
+  width: 150px; height: 26px;
+  background: radial-gradient(ellipse at center, #8b0000 30%, #5a0000 60%, transparent 75%);
+  filter: blur(2px);
+  animation: pool-spread 4s ease-out infinite alternate;
+}
+@keyframes pool-spread {
+  0%   { width: 130px; opacity: 0.85; }
+  100% { width: 170px; opacity: 1; }
+}
+
+.sh-head {
+  position: relative;
+  width: 90px; height: 110px;
+  margin: 0 auto;
+  background: radial-gradient(ellipse at 50% 40%, #c9a986 55%, #9c7d5c 80%, #6d543c 100%);
+  border-radius: 48% 48% 44% 44% / 55% 55% 45% 45%;
+  box-shadow: inset 0 -14px 20px rgba(60,30,15,0.6), 0 0 18px rgba(0,0,0,0.7);
+  animation: head-sway 5s ease-in-out infinite;
+}
+@keyframes head-sway {
+  0%,100% { transform: rotate(-4deg); }
+  50%     { transform: rotate(4deg); }
+}
+
+.sh-hair {
+  position: absolute;
+  top: -10px; left: -8px; right: -8px;
+  height: 46px;
+  background: radial-gradient(ellipse at 50% 60%, #e8e8e8 50%, #bcbcbc 75%, transparent 80%);
+  border-radius: 50% 50% 40% 40%;
+  filter: blur(1px);
+}
+
+.sh-eye {
+  position: absolute;
+  top: 44px;
+  width: 16px; height: 12px;
+  background: #1a0a08;
+  border-radius: 50%;
+  box-shadow: inset 0 0 4px #000;
+}
+.sh-eye::after {
+  content: '';
+  position: absolute;
+  top: 3px; left: 4px;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #ff1500;
+  box-shadow: 0 0 8px 3px #ff0000;
+  animation: eye-flicker 0.5s steps(2) infinite;
+}
+.sh-eye.left  { left: 16px; }
+.sh-eye.right { right: 16px; }
+
+.sh-mouth {
+  position: absolute;
+  bottom: 18px; left: 50%;
+  transform: translateX(-50%);
+  width: 34px; height: 22px;
+  background: #2a0000;
+  border-radius: 0 0 40% 40%;
+  box-shadow: inset 0 4px 6px #000;
+  border-top: 3px solid #7a4a30;
+}
+/* ein paar Zähne */
+.sh-mouth::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 4px; right: 4px;
+  height: 6px;
+  background: repeating-linear-gradient(to right,
+    #d8c8a0 0px, #d8c8a0 4px, transparent 4px, transparent 7px);
+}
+
+.sh-neck {
+  position: absolute;
+  bottom: -2px; left: 50%;
+  transform: translateX(-50%);
+  width: 54px; height: 22px;
+  background: linear-gradient(to bottom, #8b1a1a 0%, #5a0000 100%);
+  border-radius: 0 0 8px 8px;
+  z-index: -1;
+  box-shadow: 0 0 8px rgba(150,0,0,0.6);
+}
+
+/* tropfendes Blut vom Halsansatz */
+.sh-drip {
+  position: absolute;
+  top: 100%;
+  width: 5px;
+  background: linear-gradient(to bottom, #b00000, #6a0000);
+  border-radius: 0 0 3px 3px;
+  height: 0;
+  animation: head-drip 3s ease-in infinite;
+}
+.sh-drip:nth-child(1) { left: 12px; animation-delay: 0.3s; }
+.sh-drip:nth-child(2) { left: 26px; animation-delay: 1.4s; }
+.sh-drip:nth-child(3) { left: 40px; animation-delay: 0.9s; }
+
+@keyframes head-drip {
+  0%   { height: 0;    opacity: 1; }
+  70%  { height: 38px; opacity: 1; }
+  100% { height: 52px; opacity: 0; }
+}
 
 /* "hergestellt von Derek" unten rechts */
 #credit-tag {
