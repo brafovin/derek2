@@ -454,6 +454,105 @@ const HouseBuilder = (() => {
         hidingSpots.push({ id:'hide_crate_'+x+'_'+z, x, z, radius:0.7, type:'crate' });
         break;
       }
+      case 'fridge':{
+        box(scene,0.8,1.7,0.7, x,0.85,z, m(0xbfc4c6));
+        box(scene,0.05,0.5,0.04, x+0.34,1.2,z+0.36, m(0x555555)); // Griff oben
+        box(scene,0.05,0.4,0.04, x+0.34,0.6,z+0.36, m(0x555555)); // Griff unten
+        box(scene,0.82,0.04,0.72, x,1.0,z, m(0x8a8f90));          // Trennlinie
+        break;
+      }
+      case 'stove':{
+        box(scene,0.8,0.9,0.7, x,0.45,z, m(0x2a2a2a));
+        box(scene,0.78,0.04,0.68, x,0.92,z, m(0x111111));        // Kochfeld
+        [[-0.18,-0.15],[0.18,-0.15],[-0.18,0.15],[0.18,0.15]].forEach(([dx,dz])=>{
+          const r=new THREE.Mesh(new THREE.TorusGeometry(0.1,0.02,6,12),m(0x444444));
+          r.rotation.x=Math.PI/2; r.position.set(x+dx,0.95,z+dz); scene.add(r);
+        });
+        break;
+      }
+      case 'counter':{
+        box(scene,2.2,0.9,0.65, x,0.45,z, m(0x6a5a44));          // Schrank
+        box(scene,2.3,0.08,0.7, x,0.93,z, m(0x3a2a1a));          // Arbeitsplatte
+        break;
+      }
+      case 'sink':{
+        box(scene,0.9,0.9,0.6, x,0.45,z, m(0x6a5a44));
+        box(scene,0.92,0.06,0.62, x,0.93,z, m(0x999999));
+        box(scene,0.5,0.04,0.35, x,0.92,z, m(0x444444));        // Becken
+        const tap=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,0.18,6),m(0x888888));
+        tap.position.set(x,1.05,z-0.18); scene.add(tap);
+        break;
+      }
+      case 'nightstand':{
+        box(scene,0.45,0.5,0.45, x,0.25,z, m(0x3a2414));
+        box(scene,0.48,0.05,0.48, x,0.52,z, m(0x2a1a0c));
+        // kleine Kerze drauf
+        box(scene,0.05,0.12,0.05, x,0.6,z, m(0xddccaa));
+        break;
+      }
+      case 'dresser':{
+        box(scene,1.3,0.9,0.55, x,0.45,z, m(0x3a2414));
+        for(let i=0;i<3;i++){
+          box(scene,1.2,0.22,0.04, x,0.25+i*0.28,z+0.28, m(0x2a1a0c));
+          box(scene,0.08,0.04,0.04, x,0.25+i*0.28,z+0.31, m(0x886622)); // Griff
+        }
+        break;
+      }
+      case 'desk':{
+        box(scene,1.4,0.06,0.7, x,0.74,z, m(0x4a3018));
+        [[-0.62,-0.28],[0.62,-0.28],[-0.62,0.28],[0.62,0.28]].forEach(([dx,dz])=>{
+          box(scene,0.06,0.74,0.06, x+dx,0.37,z+dz, m(0x3a2414));
+        });
+        box(scene,0.5,0.4,0.6, x+0.4,0.5,z, m(0x3a2414)); // Schubladenblock
+        break;
+      }
+      case 'tv':{
+        box(scene,1.2,0.5,0.5, x,0.25,z, m(0x2a2a2a));          // Lowboard
+        box(scene,1.1,0.65,0.08, x,0.9,z-0.1, m(0x0a0a0a));     // Bildschirm
+        box(scene,1.0,0.55,0.02, x,0.9,z-0.05, m(0x111418));    // Glas
+        break;
+      }
+      case 'coffeetable':{
+        box(scene,1.1,0.05,0.6, x,0.4,z, m(0x4a3018));
+        [[-0.48,-0.25],[0.48,-0.25],[-0.48,0.25],[0.48,0.25]].forEach(([dx,dz])=>{
+          box(scene,0.05,0.4,0.05, x+dx,0.2,z+dz, m(0x3a2414));
+        });
+        break;
+      }
+      case 'rug':{
+        const rug=new THREE.Mesh(new THREE.PlaneGeometry(2.4,1.6),
+          new THREE.MeshStandardMaterial({color:0x5a1a1a,roughness:1.0,side:THREE.DoubleSide}));
+        rug.rotation.x=-Math.PI/2; rug.position.set(x,0.11,z); scene.add(rug);
+        break;
+      }
+      case 'plant':{
+        box(scene,0.3,0.35,0.3, x,0.17,z, m(0x6a4a2a));          // Topf
+        const leaves=new THREE.Mesh(new THREE.SphereGeometry(0.3,8,6),m(0x2a4a1a));
+        leaves.scale.y=1.4; leaves.position.set(x,0.7,z); scene.add(leaves);
+        break;
+      }
+      case 'painting':{
+        box(scene,0.7,0.9,0.04, x,1.7,z, m(0x2a1a0a));           // Rahmen
+        box(scene,0.6,0.8,0.02, x,1.7,z+0.02, m(0x554433));      // Bild
+        break;
+      }
+      case 'clock':{
+        const cl=new THREE.Mesh(new THREE.CylinderGeometry(0.28,0.28,0.06,16),m(0x2a1a0a));
+        cl.rotation.x=Math.PI/2; cl.position.set(x,1.9,z); scene.add(cl);
+        box(scene,0.4,0.5,0.05, x,1.9,z-0.01, m(0xeeeecc));
+        box(scene,0.02,0.18,0.02, x,1.95,z+0.04, m(0x000000)); // Zeiger
+        box(scene,0.13,0.02,0.02, x+0.05,1.9,z+0.04, m(0x000000));
+        break;
+      }
+      case 'shelf':{
+        box(scene,1.2,0.05,0.3, x,1.3,z, m(0x3a2414));
+        box(scene,1.2,0.05,0.3, x,0.8,z, m(0x3a2414));
+        // ein paar Gegenstände
+        [-0.4,0,0.4].forEach((dx,i)=>{
+          box(scene,0.12,0.2,0.12, x+dx,1.42,z, m([0x884400,0x447788,0x668844][i]));
+        });
+        break;
+      }
     }
   }
 
@@ -575,40 +674,62 @@ const HouseBuilder = (() => {
 
     // ── Möbel ──
     // Wohnzimmer
+    addFurniture(scene,-9,0,1,'rug');
     addFurniture(scene,-9,0,1,'sofa');
-    addFurniture(scene,-9,0,-1.5,'table');
+    addFurniture(scene,-9,0,-1.2,'coffeetable');
     addFurniture(scene,-7,0,-2,'chair');
     addFurniture(scene,-11,0,-2,'chair');
     addFurniture(scene,-12.2,0,0,'bookshelf');
+    addFurniture(scene,-9,0,4.3,'tv');
+    addFurniture(scene,-12.5,0,3,'plant');
+    addFurniture(scene,-6,0,3,'plant');
+    addFurniture(scene,-12.8,0,-1.5,'painting');
+    addFurniture(scene,-12.8,0,1.5,'clock');
     // Küche
     addFurniture(scene,8,0,0.5,'table');
     addFurniture(scene,7,0,1.5,'chair');
     addFurniture(scene,9,0,1.5,'chair');
-    box(scene,2,0.9,0.6, 12,0.45,-2, solidMat(0x777766));
-    box(scene,2,0.9,0.6, 12,0.45,2, solidMat(0x777766));
+    addFurniture(scene,7,0,-0.5,'chair');
+    addFurniture(scene,12,0,-2,'fridge');
+    addFurniture(scene,12,0,1,'stove');
+    addFurniture(scene,12,0,3.5,'sink');
+    addFurniture(scene,5,0,4,'counter');
+    addFurniture(scene,9,0,4,'counter');
     // Schlafzimmer
     addFurniture(scene,-10,0,-8,'bed');
     addFurniture(scene,-5.5,0,-9,'wardrobe');
-    addFurniture(scene,-11.5,0,-6,'table');
-    addFurniture(scene,-10.5,0,-6,'chair');
+    addFurniture(scene,-7.8,0,-8,'nightstand');
+    addFurniture(scene,-12,0,-9.5,'dresser');
+    addFurniture(scene,-11.5,0,-5,'desk');
+    addFurniture(scene,-11.5,0,-5.7,'chair');
+    addFurniture(scene,-10,0,-4.5,'rug');
+    addFurniture(scene,-12.8,0,-7,'painting');
     // Bad
     addFurniture(scene,11,0,-9,'bathtub');
     addFurniture(scene,5.5,0,-7,'toilet');
+    addFurniture(scene,5.2,0,-9.5,'sink');
+    addFurniture(scene,12.5,0,-5,'shelf');
     // Keller
     addFurniture(scene,-10,0,11,'barrel');
     addFurniture(scene,-8,0,12,'barrel');
     addFurniture(scene,-5,0,12,'crate');
     addFurniture(scene,-11,0,12,'crate');
     addFurniture(scene,-3,0,11,'crate');
+    addFurniture(scene,-12,0,6,'shelf');
+    addFurniture(scene,-7,0,6,'crate');
     // Garage
     addFurniture(scene,8,0,11,'barrel');
     addFurniture(scene,6,0,12,'crate');
     addFurniture(scene,10,0,12,'crate');
+    addFurniture(scene,12,0,6,'shelf');
+    addFurniture(scene,5.5,0,6.5,'barrel');
     // Dachboden
     addFurniture(scene,16,0,-5,'crate');
     addFurniture(scene,19,0,-3,'crate');
     addFurniture(scene,20,0,-6,'barrel');
     addFurniture(scene,15,0,-7,'barrel');
+    addFurniture(scene,18,0,-1.5,'dresser');
+    addFurniture(scene,21,0,-7,'painting');
 
     // ── Exit Tür (Ausgang) ──
     const exitMat = new THREE.MeshBasicMaterial({ color:0x003300, side:THREE.DoubleSide });

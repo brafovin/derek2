@@ -566,22 +566,137 @@ class Game {
     }
   }
 
+  _showJumpscare() {
+    // Vollbild-Schreckmoment: Grannys Fratze + blutige Sense
+    AudioManager.resume();
+    AudioManager.playJumpscare();
+    AudioManager.playStinger();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'jumpscare-overlay';
+    overlay.style.cssText = `
+      position:fixed; inset:0; z-index:10000; pointer-events:none;
+      background:#000; display:flex; align-items:center; justify-content:center;
+      overflow:hidden;`;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 512; canvas.height = 512;
+    const c = canvas.getContext('2d');
+
+    // Hintergrund Blutrot
+    c.fillStyle = '#1a0000'; c.fillRect(0, 0, 512, 512);
+    const bg = c.createRadialGradient(256, 256, 40, 256, 256, 360);
+    bg.addColorStop(0, '#4a0000'); bg.addColorStop(1, '#000000');
+    c.fillStyle = bg; c.fillRect(0, 0, 512, 512);
+
+    // Gesicht (fahle Haut)
+    c.fillStyle = '#b89878';
+    c.beginPath(); c.ellipse(256, 270, 150, 185, 0, 0, Math.PI * 2); c.fill();
+    // Schatten/Falten
+    c.strokeStyle = 'rgba(60,30,20,0.5)'; c.lineWidth = 3;
+    for (let i = 0; i < 6; i++) {
+      c.beginPath();
+      c.moveTo(160 + i * 30, 200);
+      c.quadraticCurveTo(170 + i * 30, 260, 150 + i * 30, 330);
+      c.stroke();
+    }
+    // Wirres weißes Haar
+    c.strokeStyle = '#e8e8e8'; c.lineWidth = 4;
+    for (let i = 0; i < 60; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r1 = 120 + Math.random() * 30;
+      const r2 = 160 + Math.random() * 90;
+      c.beginPath();
+      c.moveTo(256 + Math.cos(a) * r1, 200 + Math.sin(a) * r1 * 0.9);
+      c.lineTo(256 + Math.cos(a) * r2, 180 + Math.sin(a) * r2 * 0.9);
+      c.stroke();
+    }
+    // Augenhöhlen (dunkel)
+    c.fillStyle = '#1a0a08';
+    c.beginPath(); c.ellipse(195, 250, 42, 38, 0, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.ellipse(317, 250, 42, 38, 0, 0, Math.PI * 2); c.fill();
+    // Glühende rote Augen
+    [195, 317].forEach(ex => {
+      const eg = c.createRadialGradient(ex, 250, 2, ex, 250, 28);
+      eg.addColorStop(0, '#ffffff'); eg.addColorStop(0.3, '#ff2200'); eg.addColorStop(1, '#330000');
+      c.fillStyle = eg;
+      c.beginPath(); c.arc(ex, 250, 26, 0, Math.PI * 2); c.fill();
+      c.fillStyle = '#000';
+      c.beginPath(); c.arc(ex, 250, 9, 0, Math.PI * 2); c.fill();
+    });
+    // Nase
+    c.strokeStyle = '#7a5a40'; c.lineWidth = 4;
+    c.beginPath(); c.moveTo(256, 270); c.lineTo(240, 330); c.lineTo(272, 330); c.stroke();
+    // Schreiender Mund mit Zähnen
+    c.fillStyle = '#1a0000';
+    c.beginPath(); c.ellipse(256, 400, 70, 55, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#d8c8a0';
+    for (let i = 0; i < 7; i++) {
+      c.fillRect(200 + i * 16, 360, 11, 22);   // obere Zähne
+      c.fillRect(200 + i * 16, 418, 11, 22);   // untere Zähne
+    }
+    // Blutspritzer übers Gesicht
+    c.fillStyle = 'rgba(150,0,0,0.85)';
+    for (let i = 0; i < 30; i++) {
+      c.beginPath();
+      c.arc(Math.random() * 512, Math.random() * 512, 2 + Math.random() * 9, 0, Math.PI * 2);
+      c.fill();
+    }
+    // Blutige Sense quer übers Bild
+    c.strokeStyle = '#3b2410'; c.lineWidth = 14;
+    c.beginPath(); c.moveTo(40, 500); c.lineTo(420, 90); c.stroke();
+    c.strokeStyle = '#c0c0c8'; c.lineWidth = 20;
+    c.beginPath(); c.arc(420, 90, 110, Math.PI * 0.5, Math.PI * 1.15); c.stroke();
+    c.strokeStyle = 'rgba(140,0,0,0.9)'; c.lineWidth = 9;
+    c.beginPath(); c.arc(420, 90, 110, Math.PI * 0.55, Math.PI * 1.1); c.stroke();
+
+    canvas.style.cssText = 'width:100vmax; height:100vmax; max-width:130vw; max-height:130vh;';
+    overlay.appendChild(canvas);
+    document.body.appendChild(overlay);
+
+    document.body.classList.add('screen-shake');
+
+    // Wildes Zoom/Zitter-Animieren
+    let frame = 0;
+    const shake = setInterval(() => {
+      frame++;
+      const sx = (Math.random() - 0.5) * 40;
+      const sy = (Math.random() - 0.5) * 40;
+      const sc = 1 + Math.sin(frame * 0.8) * 0.06 + frame * 0.004;
+      canvas.style.transform = `translate(${sx}px,${sy}px) scale(${sc})`;
+    }, 40);
+
+    setTimeout(() => {
+      clearInterval(shake);
+      document.body.classList.remove('screen-shake');
+      overlay.style.transition = 'opacity 0.3s';
+      overlay.style.opacity = '0';
+      setTimeout(() => overlay.remove(), 300);
+    }, 1300);
+  }
+
   onKnockedOut(day, cause) {
     if (!this.player) return;
     this.player.alive = false;
     this.currentDay = day;
     AudioManager.stopChainsaw();
     AudioManager.stopHeartbeat();
+    AudioManager.stopMusicBox();
     document.body.classList.remove('danger-vignette');
     document.exitPointerLock();
 
+    const isTrap = cause === 'trap';
+
+    // Bei Granny-Angriff: fetter Jumpscare mit Sense
+    if (!isTrap) {
+      this._showJumpscare();
+    }
+
     AudioManager.playScream();
     AudioManager.tone(100, 1.5, 'sine', 0.4);
-
-    const isTrap = cause === 'trap';
     document.getElementById('ko-text').textContent = isTrap
       ? '🪤 Du bist in eine Bärenfalle getreten!'
-      : '🪚 Grannys Kettensäge hat dich erwischt...';
+      : '🔪 Grannys blutige Sense hat dich erwischt...';
 
     // Schwarzer Flash
     const flash = document.createElement('div');
