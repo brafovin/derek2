@@ -280,6 +280,22 @@ body {
   text-shadow: 0 0 10px #ff0000;
 }
 
+/* "hergestellt von Derek" unten rechts */
+#credit-tag {
+  position: absolute;
+  right: 18px;
+  bottom: 14px;
+  z-index: 6;
+  font-family: 'Courier New', monospace;
+  font-size: 0.95rem;
+  letter-spacing: 0.15em;
+  color: #aa3333;
+  text-shadow: 0 0 8px #660000, 0 0 2px #000;
+  opacity: 0.85;
+  pointer-events: none;
+  animation: blink 3s infinite;
+}
+
 /* Einladungs-Link */
 #invite-link-box {
   display: flex;
