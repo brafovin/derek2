@@ -76,6 +76,20 @@ function getDefaultItems() {
   ];
 }
 
+// Granny-Spawns: weit weg vom Spieler-Spawn (Flur um 0,0). Nie im Flur.
+const GRANNY_SPAWNS = [
+  { x: 18,  y: 0, z: -4 },   // Dachboden
+  { x: -10, y: 0, z: 10 },   // Keller
+  { x: 9,   y: 0, z: 11 },   // Garage
+  { x: -10, y: 0, z: -8 },   // Schlafzimmer
+  { x: 9,   y: 0, z: -8 },   // Bad
+  { x: 9,   y: 0, z: 1 },    // Küche
+];
+
+function pickGrannySpawn() {
+  return { ...GRANNY_SPAWNS[Math.floor(Math.random() * GRANNY_SPAWNS.length)] };
+}
+
 function getDefaultDoors() {
   return {
     basement: { open: false, locked: true, lockType: 'key', keyId: 'key_basement', hasPlank: false },
@@ -133,6 +147,8 @@ io.on('connection', (socket) => {
         if (rooms[roomId] && !rooms[roomId].gameStarted) {
           rooms[roomId].gameStarted = true;
           rooms[roomId].startTime = Date.now();
+          // Granny startet in einem weit entfernten Raum (nicht im Flur)
+          rooms[roomId].grannyPos = pickGrannySpawn();
           io.to(roomId).emit('gameStart');
         }
       }, 3000);
@@ -306,7 +322,7 @@ function updateGrannyAI(room, roomId) {
             if (room.players[p.id]) {
               room.players[p.id].knockedOut = false;
               // Granny geht zurück zu Startposition nach K.O.
-              room.grannyPos = { x: 5, y: 0, z: 5 };
+              room.grannyPos = pickGrannySpawn();
               io.to(roomId).emit('playerWokeUp', { id: p.id, day: p.day, health: 100 });
             }
           }, 4000);
@@ -356,13 +372,18 @@ function updateGrannyAI(room, roomId) {
       room.grannyAngle += (Math.random() - 0.5) * 0.5;
     }
     const maxDay2 = Math.max(...Object.values(room.players).map(p => p.day || 1));
-    const patrolSpeed = 0.018 + (maxDay2 - 1) * 0.006;
+    const patrolSpeed = 0.05 + (maxDay2 - 1) * 0.01;
     room.grannyPos.x += Math.sin(room.grannyAngle) * patrolSpeed;
     room.grannyPos.z += Math.cos(room.grannyAngle) * patrolSpeed;
 
+    // An den Außenwänden abprallen, statt stehen zu bleiben
+    if (room.grannyPos.x <= -18 || room.grannyPos.x >= 18 ||
+        room.grannyPos.z <= -16 || room.grannyPos.z >= 16) {
+      room.grannyAngle += Math.PI + (Math.random() - 0.5) * 0.6;
+    }
     // Keep granny in bounds
     room.grannyPos.x = Math.max(-18, Math.min(18, room.grannyPos.x));
-    room.grannyPos.z = Math.max(-18, Math.min(18, room.grannyPos.z));
+    room.grannyPos.z = Math.max(-16, Math.min(16, room.grannyPos.z));
   }
 
   // ── Bärenfallen droppen ──
@@ -408,7 +429,7 @@ function updateGrannyAI(room, roomId) {
             setTimeout(() => {
               if (room.players[p.id]) {
                 room.players[p.id].knockedOut = false;
-                room.grannyPos = { x: 5, y: 0, z: 5 };
+                room.grannyPos = pickGrannySpawn();
                 io.to(roomId).emit('playerWokeUp', { id: p.id, day: p.day, health: 100 });
               }
             }, 4000);
