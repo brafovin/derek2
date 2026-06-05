@@ -448,42 +448,47 @@ const HouseBuilder = (() => {
   }
 
   function addLighting(scene) {
-    // Ambient (very dark)
-    const ambient = new THREE.AmbientLight(0x220e08, 0.5);
+    // Ambient hell genug damit man was sieht, aber noch gruselig
+    const ambient = new THREE.AmbientLight(0x998866, 0.6);
     scene.add(ambient);
 
-    // Room lights (dim, flickering)
+    // Helles Hemisphärenlicht (oben warm, unten kühl)
+    const hemi = new THREE.HemisphereLight(0xffcc88, 0x223322, 0.4);
+    scene.add(hemi);
+
+    // Raumlicht - grosse Reichweite damit alles sichtbar ist
     const lightPositions = [
-      { x: 0, z: 0 },
-      { x: -8, z: 0 },
-      { x: 8, z: 0 },
-      { x: 8, z: -8 },
-      { x: -8, z: -8 },
-      { x: -8, z: 12 },
-      { x: 0, z: 10 },
-      { x: 15, z: -5 }
+      { x: 0,   z: 0  },
+      { x: -8,  z: 0  },
+      { x: 8,   z: 0  },
+      { x: 8,   z: -8 },
+      { x: -8,  z: -8 },
+      { x: -8,  z: 12 },
+      { x: 0,   z: 10 },
+      { x: 15,  z: -5 }
     ];
 
     lightPositions.forEach((pos, i) => {
-      const light = new THREE.PointLight(0xff6633, 0.8, 8);
+      // Intensität 1.5, Reichweite 18 damit der ganze Raum beleuchtet ist
+      const light = new THREE.PointLight(0xffaa55, 1.5, 18);
       light.position.set(pos.x, WALL_HEIGHT - 0.3, pos.z);
       light.castShadow = false;
       light.userData.flicker = true;
       light.userData.flickerOffset = i * 0.7;
-      light.userData.baseIntensity = 0.6 + Math.random() * 0.4;
+      light.userData.baseIntensity = 1.4;
       scene.add(light);
 
-      // Bulb geometry
+      // Glühbirne sichtbar
       const bulb = new THREE.Mesh(
-        new THREE.SphereGeometry(0.08, 8, 8),
+        new THREE.SphereGeometry(0.1, 8, 8),
         new THREE.MeshBasicMaterial({ color: 0xffee99 })
       );
-      bulb.position.set(pos.x, WALL_HEIGHT - 0.2, pos.z);
+      bulb.position.set(pos.x, WALL_HEIGHT - 0.15, pos.z);
       scene.add(bulb);
     });
 
-    // Moonlight from windows
-    const moon = new THREE.DirectionalLight(0x334466, 0.3);
+    // Mondlicht durch Fenster (stärker)
+    const moon = new THREE.DirectionalLight(0x6688bb, 0.5);
     moon.position.set(-10, 20, -10);
     scene.add(moon);
   }
@@ -504,12 +509,13 @@ const HouseBuilder = (() => {
   function updateFlicker(scene, time) {
     scene.traverse((obj) => {
       if (obj.isLight && obj.userData.flicker) {
-        const base = obj.userData.baseIntensity;
-        const off = obj.userData.flickerOffset;
-        const flicker = Math.sin(time * 3 + off) * 0.1 +
-                        Math.sin(time * 7.3 + off) * 0.05 +
-                        (Math.random() < 0.02 ? Math.random() * 0.3 : 0);
-        obj.intensity = Math.max(0, base + flicker);
+        const base = obj.userData.baseIntensity || 1.4;
+        const off = obj.userData.flickerOffset || 0;
+        // Leichtes Flackern - nicht zu extrem
+        const flicker = Math.sin(time * 3 + off) * 0.15 +
+                        Math.sin(time * 7.3 + off) * 0.08 +
+                        (Math.random() < 0.01 ? -(Math.random() * 0.8) : 0);
+        obj.intensity = Math.max(0.6, base + flicker);
       }
     });
   }

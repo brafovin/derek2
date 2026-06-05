@@ -155,28 +155,27 @@ class Player {
   }
 
   update(dt) {
-    if (!this.alive || !this.mouseLocked) {
-      // Still update camera position
-      this.camera.position.copy(this.pos);
-      this.camera.position.y += this.crouching ? -0.3 : 0;
+    if (!this.alive) {
+      this._applyCamera();
       return;
     }
 
     if (this.hidden) {
-      // While hiding, can't move
-      this.camera.position.copy(this.pos);
+      this._applyCamera();
       return;
     }
 
-    // Mouse look
-    const sensitivity = 0.002;
-    this.yaw -= this.mouseDX * sensitivity;
-    this.pitch -= this.mouseDY * sensitivity;
-    this.pitch = Math.max(-1.2, Math.min(1.2, this.pitch));
+    // Mouse look - funktioniert nur wenn Maus gesperrt
+    if (this.mouseLocked) {
+      const sensitivity = 0.002;
+      this.yaw -= this.mouseDX * sensitivity;
+      this.pitch -= this.mouseDY * sensitivity;
+      this.pitch = Math.max(-1.2, Math.min(1.2, this.pitch));
+    }
     this.mouseDX = 0;
     this.mouseDY = 0;
 
-    // Movement
+    // Bewegung funktioniert IMMER (auch ohne Mauslock)
     const speed = this.crouching ? 1.5 : (this.keys['ShiftLeft'] ? 4.5 : 3.2);
     const forward = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
     const right = new THREE.Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
@@ -198,13 +197,8 @@ class Player {
       if (newZ > -16 && newZ < 16) this.pos.z = newZ;
     }
 
-    // Camera
-    this.camera.position.copy(this.pos);
-    const eyeY = this.crouching ? this.eyeHeight - 0.5 : this.eyeHeight;
-    this.camera.position.y = eyeY;
-    this.camera.rotation.order = 'YXZ';
-    this.camera.rotation.y = this.yaw;
-    this.camera.rotation.x = this.pitch;
+    // Camera immer setzen
+    this._applyCamera();
 
     // Footstep sounds & noise
     if (this.isMoving) {
@@ -235,6 +229,13 @@ class Player {
 
     // Update inventory UI
     this._updateInventoryUI();
+  }
+
+  _applyCamera() {
+    this.camera.position.set(this.pos.x, this.crouching ? this.eyeHeight - 0.4 : this.eyeHeight, this.pos.z);
+    this.camera.rotation.order = 'YXZ';
+    this.camera.rotation.y = this.yaw;
+    this.camera.rotation.x = this.pitch;
   }
 
   _updatePrompts() {

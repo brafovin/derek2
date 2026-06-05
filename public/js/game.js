@@ -54,7 +54,9 @@ class Game {
 
   _setupScene() {
     this.scene = new THREE.Scene();
-    this.scene.fog = new THREE.FogExp2(0x050202, 0.06);
+    this.scene.background = new THREE.Color(0x0a0604);
+    // Weniger dichten Nebel - man soll das Haus sehen können
+    this.scene.fog = new THREE.Fog(0x0a0604, 12, 35);
 
     this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.05, 50);
     this.camera.position.set(0, 1.7, 0);
@@ -264,13 +266,34 @@ class Game {
     this.state = 'playing';
     this._updatePlayersList();
 
-    // Start the render loop
+    // Klick-Hinweis anzeigen
+    const clickHint = document.createElement('div');
+    clickHint.id = 'click-hint';
+    clickHint.style.cssText = `
+      position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+      background:rgba(0,0,0,0.85); border:2px solid #cc0000;
+      color:#fff; font-family:'Courier New',monospace;
+      padding:20px 40px; font-size:1.3rem; z-index:200;
+      text-align:center; pointer-events:none;
+    `;
+    clickHint.innerHTML = '🖱️ KLICK zum Spielen<br><span style="font-size:0.85rem;color:#888">WASD = Bewegen &nbsp;|&nbsp; Maus = Umsehen<br>E = Aufheben &nbsp;|&nbsp; H = Verstecken &nbsp;|&nbsp; Shift = Schleichen</span>';
+    document.body.appendChild(clickHint);
+
+    // Start the render loop - SOFORT
     this._animate();
 
-    // Request pointer lock
+    // Mauslock beim ersten Klick
+    const lockHandler = () => {
+      document.getElementById('game-canvas').requestPointerLock();
+      const hint = document.getElementById('click-hint');
+      if (hint) hint.remove();
+    };
+    document.addEventListener('click', lockHandler, { once: true });
+
+    // Auch direkt versuchen
     setTimeout(() => {
       document.getElementById('game-canvas').requestPointerLock();
-    }, 100);
+    }, 200);
 
     // Granny sound after delay
     setTimeout(() => {
