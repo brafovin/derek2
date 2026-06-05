@@ -233,15 +233,23 @@ function updateGrannyAI(room, roomId) {
       return nd < n.volume;
     });
 
-    // Close range detection (chainsaw proximity)
+    // Close range damage (chainsaw proximity) - braucht 3 Treffer zum Sterben
     if (dist < 1.5 && !p.hidden) {
-      p.caught = true;
-      p.health = 0;
-      io.to(roomId).emit('playerCaught', { id: p.id, name: p.name });
-      const allDone = Object.values(room.players).every(pl => pl.escaped || pl.caught);
-      if (allDone) {
-        room.gameOver = true;
-        io.to(roomId).emit('gameOver', { won: false });
+      const now = Date.now();
+      // Schaden nur alle 1.5 Sekunden
+      if (!p.lastHitTime || now - p.lastHitTime > 1500) {
+        p.lastHitTime = now;
+        p.health = Math.max(0, p.health - 34); // 3 Treffer = tot
+        io.to(roomId).emit('playerDamaged', { id: p.id, health: p.health });
+        if (p.health <= 0) {
+          p.caught = true;
+          io.to(roomId).emit('playerCaught', { id: p.id, name: p.name });
+          const allDone = Object.values(room.players).every(pl => pl.escaped || pl.caught);
+          if (allDone) {
+            room.gameOver = true;
+            io.to(roomId).emit('gameOver', { won: false });
+          }
+        }
       }
       continue;
     }

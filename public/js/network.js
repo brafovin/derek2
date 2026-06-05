@@ -56,6 +56,12 @@ class NetworkManager {
       }
     });
 
+    this.socket.on('playerDamaged', (data) => {
+      if (data.id === this.playerId) {
+        this.game.onPlayerDamaged(data.health);
+      }
+    });
+
     this.socket.on('itemPickedUp', (data) => {
       this.game.onItemPickedUp(data);
     });

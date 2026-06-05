@@ -311,6 +311,21 @@ class Game {
     // Update billboard name tags
     this.player.updateNameTagBillboard(this.camera);
 
+    // Langsame Heilung wenn Granny weit weg (alle 15s +10hp)
+    if (this.player.alive && this.player.health > 0 && this.player.health < 100 && !this.grannyNearby) {
+      this._passiveHealTimer = (this._passiveHealTimer || 0) + dt;
+      if (this._passiveHealTimer >= 15) {
+        this._passiveHealTimer = 0;
+        const healed = Math.min(100, this.player.health + 10);
+        this.player.setHealth(healed);
+        if (healed > this.player.health + 1) {
+          this.showMessage('❤️ Du erholst dich... +10 HP', 2000, '#00cc44');
+        }
+      }
+    } else {
+      this._passiveHealTimer = 0;
+    }
+
     // Update timer
     this._updateTimer();
 
@@ -370,6 +385,37 @@ class Game {
     }
   }
 
+  onPlayerDamaged(newHealth) {
+    if (!this.player) return;
+    this.player.setHealth(newHealth);
+
+    // Screenshake + roter Blitz
+    document.body.classList.add('screen-shake');
+    setTimeout(() => document.body.classList.remove('screen-shake'), 350);
+
+    const hits = Math.round((100 - newHealth) / 34);
+    const msgs = ['💥 Granny hat dich getroffen! (1/3)', '💥 Nochmal getroffen! (2/3)', '💀 LETZTER TREFFER! LAUF!'];
+    this.showMessage(msgs[hits - 1] || '💥 TREFFER!', 2500, '#ff2200');
+
+    // Rote Flash-Überlagerung
+    const flash = document.createElement('div');
+    flash.style.cssText = 'position:fixed;inset:0;background:rgba(255,0,0,0.45);z-index:9999;pointer-events:none;transition:opacity 0.5s';
+    document.body.appendChild(flash);
+    setTimeout(() => { flash.style.opacity = '0'; setTimeout(() => flash.remove(), 500); }, 80);
+
+    AudioManager.playScream();
+
+    // Heilung nach 8 Sekunden wenn Granny weg
+    clearTimeout(this._healTimer);
+    this._healTimer = setTimeout(() => {
+      if (this.player && this.player.health < 100 && !this.grannyNearby) {
+        const healed = Math.min(100, this.player.health + 20);
+        this.player.setHealth(healed);
+        this.showMessage('❤️ Etwas erholt... +20 HP', 2000, '#00cc44');
+      }
+    }, 8000);
+  }
+
   onItemPickedUp({ itemId, item }) {
     // Remove mesh from scene
     const mesh = this.itemMeshes[itemId];
@@ -422,12 +468,20 @@ class Game {
 
   onPlayerCaught({ id, name }) {
     if (id === this.network.playerId) {
-      // Local player caught
       this.player.alive = false;
-      AudioManager.playScream();
+      this.player.setHealth(0);
+      clearTimeout(this._healTimer);
       document.body.classList.add('screen-shake');
       setTimeout(() => document.body.classList.remove('screen-shake'), 1000);
-      this.showMessage('💀 Du wurdest erwischt!', 5000, '#ff0000');
+
+      // Finaler Todesschrei + rotes Screen
+      AudioManager.playScream();
+      const deathFlash = document.createElement('div');
+      deathFlash.style.cssText = 'position:fixed;inset:0;background:rgba(180,0,0,0.8);z-index:9999;pointer-events:none;transition:opacity 1.5s';
+      document.body.appendChild(deathFlash);
+      setTimeout(() => { deathFlash.style.opacity = '0'; }, 100);
+
+      this.showMessage('💀 Du wurdest von Grannys Kettensäge erwischt!', 5000, '#ff0000');
 
       setTimeout(() => {
         document.exitPointerLock();
