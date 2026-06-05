@@ -36,10 +36,16 @@ class Game {
 
   _setupRenderer() {
     const canvas = document.getElementById('game-canvas');
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
+    this.renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: false,
+      powerPreference: 'high-performance'
+    });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    // Pixel-Ratio begrenzen → weniger Pixel, mehr FPS (Ziel: 120fps)
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap; // günstiger als PCFSoft
     this.renderer.setClearColor(0x050202);
     this.clock = new THREE.Clock();
 
@@ -293,7 +299,7 @@ class Game {
           this.itemMeshes[item.id] = mesh;
           this.interactables.push({
             id: item.id, x: item.x, y: item.y, z: item.z,
-            type: 'item', itemType: item.type, mesh, radius: 1.5
+            type: 'item', itemType: item.type, mesh, radius: 1.9
           });
         } catch(e) { console.warn('Item Fehler:', e); }
       }
@@ -448,6 +454,10 @@ class Game {
       const baseY = mesh.userData.baseY || 0.5;
       mesh.position.y = baseY + Math.sin(time * 2 + bob) * 0.08;
       mesh.rotation.y = time * 1.5 + bob;
+      // Pulsierendes Glühen, damit man Items leichter findet
+      const pulse = 0.6 + Math.sin(time * 3 + bob) * 0.35;
+      if (mesh.userData.glow) mesh.userData.glow.intensity = pulse;
+      if (mesh.userData.halo) mesh.userData.halo.material.opacity = 0.1 + pulse * 0.08;
     }
   }
 

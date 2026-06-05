@@ -560,25 +560,92 @@ const HouseBuilder = (() => {
   // ITEMS
   // =====================================================================
   function buildItemMesh(scene, itemData) {
-    const color = itemData.color || { hammer:0x888888, key:0xffcc00, screwdriver:0x4455ff, wirecutters:0xff4444 }[itemData.type] || 0xffffff;
-    let mesh;
+    // Realistische Materialien
+    const steel  = new THREE.MeshStandardMaterial({ color:0xb8bcc4, metalness:0.95, roughness:0.25 });
+    const darkSteel = new THREE.MeshStandardMaterial({ color:0x6a6e74, metalness:0.9, roughness:0.4 });
+    const wood   = new THREE.MeshStandardMaterial({ color:0x6b3a16, metalness:0.05, roughness:0.8 });
+    const brass  = new THREE.MeshStandardMaterial({ color:0xd9a72a, metalness:0.85, roughness:0.3 });
+    const g = new THREE.Group();
+
     if(itemData.type==='hammer'){
-      const g=new THREE.Group();
-      g.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(0.07,0.42,0.07),new THREE.MeshBasicMaterial({color:0x7a3a00})),{position:new THREE.Vector3(0,-0.08,0)}));
-      const h=new THREE.Mesh(new THREE.BoxGeometry(0.24,0.12,0.1),new THREE.MeshBasicMaterial({color:0x888888}));
-      h.position.y=0.17; g.add(h); mesh=g;
+      // Holzstiel, leicht konisch
+      const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.024,0.34,10), wood);
+      handle.position.y = -0.1; g.add(handle);
+      // Metallkopf
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.08,0.07,0.2), steel);
+      head.position.y = 0.1; g.add(head);
+      // Bahn (vorne)
+      const face = new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.035,0.05,10), steel);
+      face.rotation.z = Math.PI/2; face.position.set(0,0.1,0.11); g.add(face);
+      // Klaue (Nagelzieher) hinten
+      const claw = new THREE.Mesh(new THREE.BoxGeometry(0.04,0.05,0.07), darkSteel);
+      claw.position.set(0,0.1,-0.11); claw.rotation.x = 0.4; g.add(claw);
+
     } else if(itemData.type==='key'){
-      const g=new THREE.Group();
-      g.add(new THREE.Mesh(new THREE.TorusGeometry(0.09,0.02,8,16),new THREE.MeshBasicMaterial({color})));
-      const t=new THREE.Mesh(new THREE.BoxGeometry(0.2,0.05,0.04),new THREE.MeshBasicMaterial({color}));
-      t.position.set(0.1,-0.06,0); g.add(t); mesh=g;
+      const keyMat = itemData.color ? new THREE.MeshStandardMaterial({ color:itemData.color, metalness:0.9, roughness:0.3 }) : brass;
+      // Griffring (Reide)
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.07,0.018,10,20), keyMat);
+      g.add(ring);
+      // Schaft
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.014,0.014,0.22,8), keyMat);
+      shaft.rotation.z = Math.PI/2; shaft.position.x = 0.14; g.add(shaft);
+      // Bart (Zähne)
+      [[0.21,-0.035,0.05],[0.235,-0.045,0.06]].forEach(([px,py,h])=>{
+        const tooth = new THREE.Mesh(new THREE.BoxGeometry(0.02,h,0.012), keyMat);
+        tooth.position.set(px,py,0); g.add(tooth);
+      });
+
+    } else if(itemData.type==='screwdriver'){
+      // Griff (Kunststoff)
+      const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.035,0.16,12),
+        new THREE.MeshStandardMaterial({ color:0xcc2222, metalness:0.1, roughness:0.5 }));
+      grip.position.y = -0.06; g.add(grip);
+      // Schaft
+      const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.01,0.01,0.22,8), steel);
+      rod.position.y = 0.13; g.add(rod);
+      // Spitze
+      const tip = new THREE.Mesh(new THREE.BoxGeometry(0.025,0.03,0.006), steel);
+      tip.position.y = 0.25; g.add(tip);
+
+    } else if(itemData.type==='wirecutters'){
+      const handleMat = new THREE.MeshStandardMaterial({ color:0xcc2222, metalness:0.1, roughness:0.5 });
+      // Zwei Griffe
+      [-0.03,0.03].forEach(off=>{
+        const h = new THREE.Mesh(new THREE.BoxGeometry(0.025,0.2,0.025), handleMat);
+        h.position.set(off,-0.08,0); h.rotation.z = off>0 ? -0.15 : 0.15; g.add(h);
+      });
+      // Gelenk
+      const pivot = new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,0.04,8), darkSteel);
+      pivot.rotation.x = Math.PI/2; g.add(pivot);
+      // Backen
+      [-0.02,0.02].forEach(off=>{
+        const j = new THREE.Mesh(new THREE.BoxGeometry(0.022,0.1,0.02), steel);
+        j.position.set(off,0.08,0); j.rotation.z = off>0 ? 0.25 : -0.25; g.add(j);
+      });
+
     } else {
-      mesh=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.32,0.07),new THREE.MeshBasicMaterial({color}));
+      g.add(new THREE.Mesh(new THREE.BoxGeometry(0.1,0.2,0.07), steel));
     }
-    mesh.position.set(itemData.x, itemData.y, itemData.z);
-    mesh.userData.itemId=itemData.id; mesh.userData.itemType=itemData.type;
-    mesh.userData.bobOffset=Math.random()*Math.PI*2; mesh.userData.baseY=itemData.y;
-    scene.add(mesh); return mesh;
+
+    // Leuchtender Schimmer-Halo, damit versteckte Items auffindbar sind
+    const glowColor = itemData.color || { hammer:0xffcc66, key:0xffdd33, screwdriver:0xff5555, wirecutters:0xff7755 }[itemData.type] || 0xffffaa;
+    const halo = new THREE.Mesh(
+      new THREE.SphereGeometry(0.22, 12, 12),
+      new THREE.MeshBasicMaterial({ color:glowColor, transparent:true, opacity:0.12, depthWrite:false })
+    );
+    halo.userData.isHalo = true;
+    g.add(halo);
+    // Punktlicht für sanftes Glühen
+    const glow = new THREE.PointLight(glowColor, 0.7, 2.2);
+    glow.position.set(0,0,0);
+    g.add(glow);
+
+    g.position.set(itemData.x, itemData.y + 0.15, itemData.z);
+    g.userData.itemId=itemData.id; g.userData.itemType=itemData.type;
+    g.userData.bobOffset=Math.random()*Math.PI*2; g.userData.baseY=itemData.y + 0.15;
+    g.userData.glow = glow; g.userData.halo = halo;
+    g.traverse(o=>{ if(o.isMesh && !o.userData.isHalo) o.castShadow = true; });
+    scene.add(g); return g;
   }
 
   // =====================================================================
