@@ -372,7 +372,10 @@ class Game {
     const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
     const m = Math.floor(elapsed / 60).toString().padStart(2, '0');
     const s = (elapsed % 60).toString().padStart(2, '0');
-    document.getElementById('timer-display').textContent = `⏱️ ${m}:${s} - Finde den Ausgang!`;
+    const day = this.currentDay || 1;
+    const dayColor = day >= 4 ? '#ff4400' : day >= 3 ? '#ffaa00' : '#aaaaaa';
+    document.getElementById('timer-display').innerHTML =
+      `<span style="color:${dayColor}">TAG ${day}/5</span> &nbsp;⏱️ ${m}:${s}`;
   }
 
   updateGrannyHUD(data) {
@@ -409,34 +412,90 @@ class Game {
   }
 
   onPlayerDamaged(newHealth) {
+    // Wird nicht mehr benutzt (1-Hit K.O. System)
+  }
+
+  onKnockedOut(day) {
     if (!this.player) return;
-    this.player.setHealth(newHealth);
+    this.player.alive = false;
+    this.currentDay = day;
+    AudioManager.stopChainsaw();
+    AudioManager.stopHeartbeat();
+    document.body.classList.remove('danger-vignette');
+    document.exitPointerLock();
 
-    // Screenshake + roter Blitz
-    document.body.classList.add('screen-shake');
-    setTimeout(() => document.body.classList.remove('screen-shake'), 350);
-
-    const hits = Math.round((100 - newHealth) / 34);
-    const msgs = ['💥 Granny hat dich getroffen! (1/3)', '💥 Nochmal getroffen! (2/3)', '💀 LETZTER TREFFER! LAUF!'];
-    this.showMessage(msgs[hits - 1] || '💥 TREFFER!', 2500, '#ff2200');
-
-    // Rote Flash-Überlagerung
-    const flash = document.createElement('div');
-    flash.style.cssText = 'position:fixed;inset:0;background:rgba(255,0,0,0.45);z-index:9999;pointer-events:none;transition:opacity 0.5s';
-    document.body.appendChild(flash);
-    setTimeout(() => { flash.style.opacity = '0'; setTimeout(() => flash.remove(), 500); }, 80);
-
+    // K.O. Sound
     AudioManager.playScream();
+    AudioManager.tone(100, 1.5, 'sine', 0.4);
 
-    // Heilung nach 8 Sekunden wenn Granny weg
-    clearTimeout(this._healTimer);
-    this._healTimer = setTimeout(() => {
-      if (this.player && this.player.health < 100 && !this.grannyNearby) {
-        const healed = Math.min(100, this.player.health + 20);
-        this.player.setHealth(healed);
-        this.showMessage('❤️ Etwas erholt... +20 HP', 2000, '#00cc44');
+    // Schwarzer Flash
+    const flash = document.createElement('div');
+    flash.style.cssText = 'position:fixed;inset:0;background:#000;z-index:9998;pointer-events:none;opacity:0;transition:opacity 0.2s';
+    document.body.appendChild(flash);
+    setTimeout(() => { flash.style.opacity = '1'; }, 10);
+
+    setTimeout(() => {
+      flash.remove();
+      // K.O. Screen anzeigen
+      document.getElementById('ko-day-number').textContent = day;
+      document.getElementById('ko-title').textContent = day > 4 ? 'LETZTER TAG!' : 'K.O.!';
+      document.getElementById('ko-text').textContent =
+        day > 4 ? 'Nächstes Mal ist es vorbei!' : 'Granny hat dich erwischt...';
+      document.getElementById('knockout-screen').style.display = 'flex';
+
+      // Countdown
+      let sec = 4;
+      document.getElementById('ko-sec').textContent = sec;
+      const timer = setInterval(() => {
+        sec--;
+        const el = document.getElementById('ko-sec');
+        if (el) el.textContent = sec;
+        if (sec <= 0) clearInterval(timer);
+      }, 1000);
+    }, 300);
+  }
+
+  onWokeUp(day, health) {
+    if (!this.player) return;
+
+    // K.O. Screen ausblenden mit Effekt
+    const koScreen = document.getElementById('knockout-screen');
+    koScreen.style.transition = 'opacity 0.5s';
+    koScreen.style.opacity = '0';
+    setTimeout(() => {
+      koScreen.style.display = 'none';
+      koScreen.style.opacity = '1';
+    }, 500);
+
+    // Spieler zurücksetzen
+    this.player.alive = true;
+    this.player.hidden = false;
+    this.player.hidingSpotId = null;
+    this.player.setHealth(100);
+
+    // Spawn-Position zurücksetzen
+    this.player.pos.set(2, 1.7, 2);
+
+    // Timer neu starten
+    this.currentDay = day;
+    this.startTime = Date.now();
+
+    // Tag-Übergang Effekt
+    document.getElementById('timer-display').textContent = `☀️ TAG ${day} - Überlebe!`;
+    this.showMessage(`☀️ Du wachst auf... Tag ${day}. Granny wird aggressiver!`, 4000, '#ffaa00');
+    if (day >= 3) this.showMessage('⚠️ Granny ist jetzt schneller!', 3000, '#ff4400');
+
+    // Pointer Lock zurückholen
+    setTimeout(() => {
+      document.getElementById('game-canvas').requestPointerLock();
+    }, 200);
+
+    // Ambient dunkler je höher der Tag (mehr Angst)
+    this.scene.traverse(obj => {
+      if (obj.isAmbientLight) {
+        obj.intensity = Math.max(0.2, 0.6 - (day - 1) * 0.1);
       }
-    }, 8000);
+    });
   }
 
   onItemPickedUp({ itemId, item }) {

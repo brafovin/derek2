@@ -62,6 +62,20 @@ class NetworkManager {
       }
     });
 
+    this.socket.on('playerKnockedOut', (data) => {
+      if (data.id === this.playerId) {
+        this.game.onKnockedOut(data.day);
+      } else {
+        this.game.showMessage(`💀 ${data.id.slice(0,6)}... wurde K.O. geschlagen! Tag ${data.day}`, 3000, '#ff4400');
+      }
+    });
+
+    this.socket.on('playerWokeUp', (data) => {
+      if (data.id === this.playerId) {
+        this.game.onWokeUp(data.day, data.health);
+      }
+    });
+
     this.socket.on('itemPickedUp', (data) => {
       this.game.onItemPickedUp(data);
     });

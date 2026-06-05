@@ -496,6 +496,81 @@ body {
   50%      { opacity: 1; }
 }
 
+/* ===== K.O. SCREEN ===== */
+#knockout-screen {
+  position: fixed; inset: 0;
+  background: #000;
+  z-index: 400;
+  display: flex; align-items: center; justify-content: center;
+  animation: ko-fade-in 0.3s ease-out;
+}
+
+@keyframes ko-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+#knockout-content {
+  text-align: center;
+  color: #fff;
+}
+
+#ko-granny-icon {
+  font-size: 6rem;
+  animation: ko-granny-shake 0.4s infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes ko-granny-shake {
+  0%,100% { transform: rotate(-8deg) scale(1); }
+  50%      { transform: rotate(8deg) scale(1.1); }
+}
+
+#ko-title {
+  font-size: 5rem;
+  color: #ff0000;
+  text-shadow: 0 0 30px #ff0000;
+  letter-spacing: 0.3em;
+  margin-bottom: 0.5rem;
+  animation: ko-title-pulse 0.5s infinite;
+}
+
+@keyframes ko-title-pulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.7; transform: scale(1.05); }
+}
+
+#ko-text {
+  font-size: 1.2rem;
+  color: #888;
+  margin-bottom: 1.5rem;
+}
+
+#ko-day-badge {
+  display: inline-block;
+  background: #cc0000;
+  color: #fff;
+  font-size: 2rem;
+  font-weight: bold;
+  letter-spacing: 0.2em;
+  padding: 0.5rem 2rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  box-shadow: 0 0 20px #ff0000;
+  animation: day-badge-in 0.5s 0.5s both;
+}
+
+@keyframes day-badge-in {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+#ko-countdown {
+  font-size: 1rem;
+  color: #666;
+  margin-top: 1rem;
+}
+
 /* ===== GAME OVER ===== */
 #gameover-screen {
   position: fixed; inset: 0;

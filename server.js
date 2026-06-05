@@ -233,15 +233,17 @@ function updateGrannyAI(room, roomId) {
       return nd < n.volume;
     });
 
-    // Close range damage (chainsaw proximity) - braucht 3 Treffer zum Sterben
-    if (dist < 1.5 && !p.hidden) {
+    // 1 Treffer = K.O. → neuer Tag beginnt
+    if (dist < 1.5 && !p.hidden && !p.knockedOut) {
       const now = Date.now();
-      // Schaden nur alle 1.5 Sekunden
-      if (!p.lastHitTime || now - p.lastHitTime > 1500) {
+      if (!p.lastHitTime || now - p.lastHitTime > 2000) {
         p.lastHitTime = now;
-        p.health = Math.max(0, p.health - 34); // 3 Treffer = tot
-        io.to(roomId).emit('playerDamaged', { id: p.id, health: p.health });
-        if (p.health <= 0) {
+        p.knockedOut = true;
+        p.day = (p.day || 1) + 1;
+        p.health = 100; // Vollheilung nach K.O.
+
+        if (p.day > 5) {
+          // Nach Tag 5 ist es Game Over
           p.caught = true;
           io.to(roomId).emit('playerCaught', { id: p.id, name: p.name });
           const allDone = Object.values(room.players).every(pl => pl.escaped || pl.caught);
@@ -249,6 +251,17 @@ function updateGrannyAI(room, roomId) {
             room.gameOver = true;
             io.to(roomId).emit('gameOver', { won: false });
           }
+        } else {
+          io.to(roomId).emit('playerKnockedOut', { id: p.id, day: p.day });
+          // Nach 4 Sekunden aufwachen (Spieler spawnt neu)
+          setTimeout(() => {
+            if (room.players[p.id]) {
+              room.players[p.id].knockedOut = false;
+              // Granny geht zurück zu Startposition nach K.O.
+              room.grannyPos = { x: 5, y: 0, z: 5 };
+              io.to(roomId).emit('playerWokeUp', { id: p.id, day: p.day, health: 100 });
+            }
+          }, 4000);
         }
       }
       continue;
@@ -280,7 +293,9 @@ function updateGrannyAI(room, roomId) {
     const dz = targetPlayer.z - granny.z;
     const dist = Math.sqrt(dx * dx + dz * dz);
     if (dist > 0.5) {
-      const speed = 0.065;
+      // Granny wird pro Tag schneller
+      const maxDay = Math.max(...Object.values(room.players).map(p => p.day || 1));
+      const speed = 0.055 + (maxDay - 1) * 0.015;
       room.grannyPos.x += (dx / dist) * speed;
       room.grannyPos.z += (dz / dist) * speed;
       room.grannyAngle = Math.atan2(dx, dz);
@@ -292,8 +307,10 @@ function updateGrannyAI(room, roomId) {
     if (Math.random() < 0.02) {
       room.grannyAngle += (Math.random() - 0.5) * 0.5;
     }
-    room.grannyPos.x += Math.sin(room.grannyAngle) * 0.02;
-    room.grannyPos.z += Math.cos(room.grannyAngle) * 0.02;
+    const maxDay2 = Math.max(...Object.values(room.players).map(p => p.day || 1));
+    const patrolSpeed = 0.018 + (maxDay2 - 1) * 0.006;
+    room.grannyPos.x += Math.sin(room.grannyAngle) * patrolSpeed;
+    room.grannyPos.z += Math.cos(room.grannyAngle) * patrolSpeed;
 
     // Keep granny in bounds
     room.grannyPos.x = Math.max(-18, Math.min(18, room.grannyPos.x));
