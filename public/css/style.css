@@ -326,11 +326,10 @@ body {
   font-family: 'Courier New', monospace;
   font-size: 0.95rem;
   letter-spacing: 0.15em;
-  color: #aa3333;
-  text-shadow: 0 0 8px #660000, 0 0 2px #000;
-  opacity: 0.85;
+  color: #ffffff;
+  text-shadow: 0 0 8px #ff4444, 0 0 2px #000;
+  opacity: 1;
   pointer-events: none;
-  animation: blink 3s infinite;
 }
 
 /* Einladungs-Link */
