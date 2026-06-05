@@ -280,6 +280,43 @@ body {
   text-shadow: 0 0 10px #ff0000;
 }
 
+/* Spiel-Link-Banner über dem Titel */
+#game-link-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.2rem;
+  padding: 0.5rem 1rem;
+  background: rgba(20, 0, 0, 0.7);
+  border: 1px solid #800;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  color: #cc8888;
+  box-shadow: 0 0 14px rgba(150, 0, 0, 0.4);
+}
+
+#game-link-url {
+  color: #ff8888;
+  word-break: break-all;
+  text-shadow: 0 0 6px #660000;
+}
+
+#btn-copy-game-link {
+  background: transparent;
+  border: 1px solid #cc0000;
+  color: #cc0000;
+  font-family: 'Courier New', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  padding: 0.25rem 0.7rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+#btn-copy-game-link:hover { background: #cc0000; color: #000; }
+
 /* "hergestellt von Derek" unten rechts */
 #credit-tag {
   position: absolute;

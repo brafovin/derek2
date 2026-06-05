@@ -216,6 +216,29 @@ class Game {
     this.state = 'menu';
     AudioManager.playAmbient();
 
+    // Spiel-Link über dem Titel anzeigen (Adresse, über die man reinkommt)
+    const gameLink = location.origin + location.pathname;
+    const urlEl = document.getElementById('game-link-url');
+    if (urlEl) urlEl.textContent = gameLink;
+    const copyBtn = document.getElementById('btn-copy-game-link');
+    if (copyBtn && !copyBtn.dataset.bound) {
+      copyBtn.dataset.bound = '1';
+      copyBtn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(gameLink);
+        } catch (e) {
+          const r = document.createRange();
+          r.selectNode(document.getElementById('game-link-url'));
+          window.getSelection().removeAllRanges();
+          window.getSelection().addRange(r);
+          try { document.execCommand('copy'); } catch (e2) {}
+        }
+        copyBtn.textContent = '✅ KOPIERT!';
+        AudioManager.playPickup();
+        setTimeout(() => { copyBtn.textContent = 'KOPIEREN'; }, 1800);
+      });
+    }
+
     // Wenn die URL einen Raum-Code enthält (?room=CODE), Beitritts-Feld
     // vorbereiten und Code automatisch eintragen
     const params = new URLSearchParams(location.search);
