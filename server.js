@@ -163,6 +163,20 @@ io.on('connection', (socket) => {
         }
       }
     }
+
+    // Open any unlocked, non-planked door (no item needed)
+    if (targetId.startsWith('door_') && !itemId) {
+      const doorKey = targetId.replace('door_', '');
+      const door = room.doors[doorKey];
+      const canOpen = !door                                           // not tracked = freely openable
+        || (!door.locked && !door.open && !(door.hasPlank && !door.plankRemoved));
+      if (canOpen) {
+        if (door) door.open = true;
+        else room.doors[doorKey] = { open: true, locked: false, hasPlank: false };
+        io.to(socket.roomId).emit('doorOpened', { door: doorKey });
+        room.noise.push({ x: player.x, z: player.z, volume: 5, time: Date.now() });
+      }
+    }
   });
 
   socket.on('hide', ({ spotId, hiding }) => {

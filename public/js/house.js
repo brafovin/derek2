@@ -8,6 +8,7 @@ const HouseBuilder = (() => {
   const interactables = [];
   const hidingSpots   = [];
   const collisionWalls = []; // AABB-Wände für Kollision
+  const doorMeshes     = {}; // id -> { pivot, targetRot, currentRot, colIdx, open }
 
   // =====================================================================
   // LAYOUT DEFINITIONEN
@@ -155,18 +156,18 @@ const HouseBuilder = (() => {
   // =====================================================================
   function wallMat(rep=3) {
     const t = textures.wall.clone(); t.needsUpdate=true; t.repeat.set(rep,1);
-    return new THREE.MeshBasicMaterial({ map:t, side:THREE.DoubleSide });
+    return new THREE.MeshStandardMaterial({ map:t, side:THREE.DoubleSide, roughness:0.95, metalness:0.0 });
   }
   function floorMat(rep=4) {
     const t = textures.floor.clone(); t.needsUpdate=true; t.repeat.set(rep,rep);
-    return new THREE.MeshBasicMaterial({ map:t, side:THREE.DoubleSide });
+    return new THREE.MeshStandardMaterial({ map:t, side:THREE.DoubleSide, roughness:0.9, metalness:0.0 });
   }
   function ceilMat() {
     const t = textures.ceiling.clone(); t.needsUpdate=true; t.repeat.set(3,3);
-    return new THREE.MeshBasicMaterial({ map:t, side:THREE.DoubleSide });
+    return new THREE.MeshStandardMaterial({ map:t, side:THREE.DoubleSide, roughness:1.0, metalness:0.0 });
   }
   function solidMat(color) {
-    return new THREE.MeshBasicMaterial({ color, side:THREE.DoubleSide });
+    return new THREE.MeshStandardMaterial({ color, side:THREE.DoubleSide, roughness:0.85, metalness:0.05 });
   }
 
   // =====================================================================
@@ -175,6 +176,8 @@ const HouseBuilder = (() => {
   function box(scene, w, h, d, x, y, z, mat) {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat);
     mesh.position.set(x,y,z);
+    mesh.castShadow    = true;
+    mesh.receiveShadow = true;
     scene.add(mesh);
     return mesh;
   }
@@ -230,7 +233,7 @@ const HouseBuilder = (() => {
   }
 
   // =====================================================================
-  // TÜRRAHMEN + TÜRBLATT
+  // TÜRRAHMEN + TÜRBLATT (mit Pivot für Schwenkanimation)
   // =====================================================================
   function buildDoor(scene, axis, pos, gap, doorId, plank) {
     const [g1, g2] = gap;
@@ -238,30 +241,83 @@ const HouseBuilder = (() => {
     const mid = (g1+g2)/2;
     const cx  = axis==='x' ? pos : mid;
     const cz  = axis==='z' ? pos : mid;
-    const rotY = axis==='z' ? 0 : Math.PI/2;
 
-    // Türblatt
-    const doorMat = new THREE.MeshBasicMaterial({ map:textures.door, side:THREE.DoubleSide });
-    const doorMesh = box(scene, dw*0.9, 2.2, 0.06, cx, 1.1, cz, doorMat);
-    doorMesh.rotation.y = rotY;
-    doorMesh.userData.doorId = doorId;
-    doorMesh.userData.type   = 'door';
-    interactables.push({ id:'door_'+doorId, x:cx, y:1.1, z:cz, type:'door', mesh:doorMesh, radius:1.8 });
+    // Pivot-Gruppe am Scharnier (g1-Seite)
+    const pivotX = axis==='x' ? pos   : g1;
+    const pivotZ = axis==='z' ? pos   : g1;
+    const pivot  = new THREE.Group();
+    pivot.position.set(pivotX, 0, pivotZ);
+    scene.add(pivot);
+
+    // Türblatt (offset vom Scharnier: Mitte der Tür)
+    const doorMat = new THREE.MeshStandardMaterial({ map:textures.door, side:THREE.DoubleSide, roughness:0.9, metalness:0.1 });
+    const offX = axis==='x' ? 0     : dw*0.5;
+    const offZ = axis==='z' ? 0     : dw*0.5;
+    const geoW = axis==='x' ? WALL_T : dw*0.95;
+    const geoD = axis==='z' ? WALL_T : dw*0.95;
+    const doorMesh = new THREE.Mesh(new THREE.BoxGeometry(geoW, 2.2, geoD), doorMat);
+    doorMesh.position.set(offX, 1.1, offZ);
+    doorMesh.castShadow = true;
+    pivot.add(doorMesh);
+
+    // Türkollision (wird beim Öffnen entfernt)
+    const colIdx = collisionWalls.length;
+    if(axis==='x'){
+      collisionWalls.push({ x1:pos-HW, z1:g1, x2:pos+HW, z2:g2, doorId });
+    } else {
+      collisionWalls.push({ x1:g1, z1:pos-HW, x2:g2, z2:pos+HW, doorId });
+    }
+
+    // Schwenkrichtung: positiv oder negativ je nach Achse
+    const targetRot = axis==='x' ? -Math.PI/2 : Math.PI/2;
+    doorMeshes[doorId] = { pivot, targetRot, currentRot:0, colIdx, open:false };
+
+    interactables.push({ id:'door_'+doorId, x:cx, y:1.1, z:cz, type:'door', mesh:pivot, radius:1.8 });
 
     // Rahmen
-    const frMat = solidMat(0x1a0e05);
-    const fw = axis==='z' ? dw+0.14 : 0.08;
-    const fd = axis==='x' ? dw+0.14 : 0.08;
-    // Links
-    const fL = box(scene, axis==='x'?0.08:0.08, 2.4, axis==='z'?0.08:0.08,
+    const frMat = new THREE.MeshStandardMaterial({ color:0x1a0e05, roughness:0.9, metalness:0.1 });
+    box(scene, axis==='x'?WALL_T:0.09, 2.4, axis==='z'?WALL_T:0.09,
       axis==='x'?pos:g1-0.05, 1.2, axis==='z'?pos:g1-0.05, frMat);
-    // Rechts
-    box(scene, axis==='x'?0.08:0.08, 2.4, axis==='z'?0.08:0.08,
+    box(scene, axis==='x'?WALL_T:0.09, 2.4, axis==='z'?WALL_T:0.09,
       axis==='x'?pos:g2+0.05, 1.2, axis==='z'?pos:g2+0.05, frMat);
-    // Oben
-    box(scene, fw, 0.1, fd, cx, 2.25, cz, frMat);
+    const fw = axis==='z' ? dw+0.14 : WALL_T;
+    const fd = axis==='x' ? dw+0.14 : WALL_T;
+    box(scene, fw, 0.12, fd, cx, 2.26, cz, frMat);
 
-    if(plank) buildPlank(scene, cx, cz, rotY, doorId);
+    // Türknauf
+    const knobMat = new THREE.MeshStandardMaterial({ color:0xaa8833, roughness:0.3, metalness:0.8 });
+    const knob = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 8), knobMat);
+    const knobSide = axis==='x' ? 0 : dw*0.85;
+    knob.position.set(knobSide, 1.1, axis==='z' ? 0 : dw*0.85);
+    knob.castShadow = true;
+    pivot.add(knob);
+
+    if(plank) buildPlank(scene, cx, cz, axis==='z' ? 0 : Math.PI/2, doorId);
+  }
+
+  function openDoor(doorId) {
+    const d = doorMeshes[doorId];
+    if(!d || d.open) return;
+    d.open = true;
+    // Türkollision entfernen
+    if(d.colIdx !== undefined){
+      collisionWalls.splice(d.colIdx, 1);
+      // Indizes nachfolgender Türen korrigieren
+      for(const id in doorMeshes){
+        if(doorMeshes[id].colIdx > d.colIdx) doorMeshes[id].colIdx--;
+      }
+      d.colIdx = undefined;
+    }
+  }
+
+  function updateDoors(dt) {
+    for(const id in doorMeshes){
+      const d = doorMeshes[id];
+      if(!d.open) continue;
+      const speed = 3.5;
+      d.currentRot += (d.targetRot - d.currentRot) * Math.min(1, speed * dt);
+      d.pivot.rotation.y = d.currentRot;
+    }
   }
 
   function buildPlank(scene, x, z, rotY, doorId) {
@@ -396,24 +452,63 @@ const HouseBuilder = (() => {
   // BELEUCHTUNG
   // =====================================================================
   function addLighting(scene){
-    scene.add(new THREE.AmbientLight(0xaa8855, 0.8));
-    scene.add(new THREE.HemisphereLight(0xffcc88, 0x221a10, 0.5));
+    scene.add(new THREE.AmbientLight(0xcc9966, 0.55));
+    scene.add(new THREE.HemisphereLight(0xffddaa, 0x331a0a, 0.4));
 
-    // Lampen in jedem Raum
-    const lamps=[
-      [0,1.5],[- 8,1],[ 8,1],[-8,-7],[8,-7],[-5,9],[8,9],[18,-4]
+    const dir = new THREE.DirectionalLight(0x6688bb, 0.35);
+    dir.position.set(-15, 20, -10);
+    dir.castShadow = true;
+    dir.shadow.mapSize.width  = 1024;
+    dir.shadow.mapSize.height = 1024;
+    dir.shadow.camera.far = 60;
+    scene.add(dir);
+
+    // Hängelampen in jedem Raum
+    const lamps = [
+      [0,   1.5,  0xffbb66, 2.2, 20],   // Flur
+      [-8,  1,    0xffaa44, 2.0, 18],   // Wohnzimmer
+      [ 8,  1,    0xffcc77, 2.0, 18],   // Küche
+      [-8,  -7,   0xff9933, 1.8, 16],   // Schlafzimmer
+      [ 8,  -7,   0xccddff, 1.6, 14],   // Bad (kühler)
+      [-5,  9,    0xff8822, 1.5, 16],   // Keller (dunkler)
+      [ 8,  9,    0xff9944, 1.5, 16],   // Garage
+      [18,  -4,   0xffaa55, 1.4, 14],   // Dachboden
     ];
-    lamps.forEach(([lx,lz],i)=>{
-      const pl=new THREE.PointLight(0xffaa55,1.6,22);
-      pl.position.set(lx,WALL_H-0.3,lz);
-      pl.userData.flicker=true;
-      pl.userData.flickerOffset=i*0.8;
-      pl.userData.baseIntensity=1.5;
+    lamps.forEach(([lx, lz, col, intensity, dist], i) => {
+      const pl = new THREE.PointLight(col, intensity, dist);
+      pl.position.set(lx, WALL_H - 0.3, lz);
+      pl.castShadow = (i < 3); // Nur erste 3 Lampen werfen Schatten (Performance)
+      pl.shadow.mapSize.width = pl.shadow.mapSize.height = 512;
+      pl.userData.flicker = true;
+      pl.userData.flickerOffset = i * 1.3;
+      pl.userData.baseIntensity = intensity;
       scene.add(pl);
-      const bulb=new THREE.Mesh(new THREE.SphereGeometry(0.09,8,8),new THREE.MeshBasicMaterial({color:0xffee99}));
-      bulb.position.set(lx,WALL_H-0.15,lz); scene.add(bulb);
+
+      // Glühbirne
+      const bulb = new THREE.Mesh(
+        new THREE.SphereGeometry(0.07, 8, 8),
+        new THREE.MeshBasicMaterial({ color: col })
+      );
+      bulb.position.set(lx, WALL_H - 0.12, lz);
+      scene.add(bulb);
+
+      // Kabel
+      const cable = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.012, 0.012, 0.4, 6),
+        new THREE.MeshBasicMaterial({ color: 0x111111 })
+      );
+      cable.position.set(lx, WALL_H - 0.0, lz);
+      scene.add(cable);
+
+      // Lampenschirm (Kegel)
+      const shade = new THREE.Mesh(
+        new THREE.ConeGeometry(0.22, 0.28, 10, 1, true),
+        new THREE.MeshStandardMaterial({ color: 0x443322, side: THREE.DoubleSide, roughness: 0.8 })
+      );
+      shade.position.set(lx, WALL_H - 0.22, lz);
+      shade.rotation.x = Math.PI;
+      scene.add(shade);
     });
-    scene.add(Object.assign(new THREE.DirectionalLight(0x5577bb,0.4),{position:new THREE.Vector3(-15,20,-10)}));
   }
 
   // =====================================================================
@@ -424,6 +519,7 @@ const HouseBuilder = (() => {
     interactables.length  = 0;
     hidingSpots.length    = 0;
     collisionWalls.length = 0;
+    for(const k in doorMeshes) delete doorMeshes[k];
 
     const wm = wallMat();
 
@@ -551,7 +647,7 @@ const HouseBuilder = (() => {
   // =====================================================================
   // PUBLIC API
   // =====================================================================
-  return { build, updateFlicker, buildItemMesh, interactables, hidingSpots, collisionWalls };
+  return { build, updateFlicker, updateDoors, openDoor, buildItemMesh, interactables, hidingSpots, collisionWalls };
 })();
 
 // Kompatibilität: addItem

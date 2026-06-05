@@ -39,7 +39,7 @@ class Game {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.BasicShadowMap;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.setClearColor(0x050202);
     this.clock = new THREE.Clock();
 
@@ -377,6 +377,8 @@ class Game {
 
     // Update flicker lights
     HouseBuilder.updateFlicker(this.scene, time);
+    // Update door animations
+    HouseBuilder.updateDoors(dt);
 
     // Update billboard name tags
     this.player.updateNameTagBillboard(this.camera);
@@ -685,6 +687,7 @@ class Game {
 
   onDoorOpened(doorId) {
     AudioManager.playDoorCreak();
+    HouseBuilder.openDoor(doorId);
     this.showMessage('🚪 Tür geöffnet!');
   }
 
