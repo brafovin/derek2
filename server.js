@@ -337,10 +337,22 @@ function updateGrannyAI(room, roomId) {
       continue;
     }
 
+    // Sieht sie dich → merkt sie sich dich und jagt hartnäckig weiter
+    if (inVision || dist < 2) {
+      room.chaseMemory = { id: p.id, until: Date.now() + 6000 };
+    }
+
     if ((inVision || heard || dist < 2) && dist < minDist) {
       minDist = dist;
       targetPlayer = p;
     }
+  }
+
+  // Verfolgungs-Gedächtnis: auch ohne aktuelle Sicht weiterjagen
+  if (!targetPlayer && room.chaseMemory && Date.now() < room.chaseMemory.until) {
+    const remembered = players.find(p => p.id === room.chaseMemory.id && !p.hidden);
+    if (remembered) targetPlayer = remembered;
+    else room.chaseMemory = null; // Spieler versteckt → Jagd abbrechen
   }
 
   // Noise-based investigation
