@@ -79,6 +79,12 @@ class NetworkManager {
       this.game.triggerBearTrap(data.trapId, data.playerId === this.playerId);
     });
 
+    this.socket.on('playerPulledOut', (data) => {
+      if (data.id === this.playerId) {
+        this.game.onPulledOut();
+      }
+    });
+
     this.socket.on('playerWokeUp', (data) => {
       if (data.id === this.playerId) {
         this.game.onWokeUp(data.day, data.health);

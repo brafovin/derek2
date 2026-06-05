@@ -244,8 +244,18 @@ io.on('connection', (socket) => {
   socket.on('hide', ({ spotId, hiding }) => {
     const room = rooms[socket.roomId];
     if (!room || !room.players[socket.id]) return;
-    room.players[socket.id].hidden = hiding;
-    room.players[socket.id].hidingSpot = hiding ? spotId : null;
+    const p = room.players[socket.id];
+    p.hidden = hiding;
+    p.hidingSpot = hiding ? spotId : null;
+    if (hiding) {
+      // Hat Granny gerade gesehen, wie/wo ich mich verstecke?
+      const seen = room.chaseMemory && room.chaseMemory.id === socket.id && Date.now() < room.chaseMemory.until;
+      p.hideSeen = !!seen;
+      p.hidePos = { x: p.x, z: p.z };
+    } else {
+      p.hideSeen = false;
+      p.hidePos = null;
+    }
     socket.to(socket.roomId).emit('playerHiding', { id: socket.id, hiding, spotId });
   });
 
@@ -285,6 +295,27 @@ setInterval(() => {
   }
 }, 100);
 
+// Spieler K.O. schlagen (Sense/Schuss, Falle oder aus dem Versteck gezerrt)
+function knockoutPlayer(room, roomId, p, cause) {
+  if (p.knockedOut) return;
+  p.lastHitTime = Date.now();
+  p.knockedOut = true;
+  p.hidden = false;
+  p.hideSeen = false;
+  p.day = (p.day || 1) + 1;
+  p.health = 100;
+  const payload = { id: p.id, day: p.day };
+  if (cause) payload.cause = cause;
+  io.to(roomId).emit('playerKnockedOut', payload);
+  setTimeout(() => {
+    if (room.players[p.id]) {
+      room.players[p.id].knockedOut = false;
+      room.grannyPos = pickGrannySpawn();
+      io.to(roomId).emit('playerWokeUp', { id: p.id, day: p.day, health: 100 });
+    }
+  }, 4000);
+}
+
 function updateGrannyAI(room, roomId) {
   const cfg = diffCfg(room);
   const granny = { x: room.grannyPos.x, z: room.grannyPos.z, angle: room.grannyAngle };
@@ -294,10 +325,31 @@ function updateGrannyAI(room, roomId) {
   room.noise = room.noise.filter(n => Date.now() - n.time < 5000);
 
   let targetPlayer = null;
+  let targetPos = null;       // Ziel-Position (kann ein bekanntes Versteck sein)
   let minDist = Infinity;
+  let pullOutTarget = null;   // Spieler, der aus dem Versteck gezerrt werden soll
 
   for (const p of players) {
-    if (p.hidden) continue;
+    // ── Versteckte Spieler ──
+    if (p.hidden) {
+      // Hat Granny gesehen, wie/wo er sich versteckt? Dann holt sie ihn raus.
+      if (p.hideSeen && p.hidePos && !p.knockedOut) {
+        const hdx = p.hidePos.x - granny.x;
+        const hdz = p.hidePos.z - granny.z;
+        const hdist = Math.sqrt(hdx * hdx + hdz * hdz);
+        if (hdist < cfg.hitRange + 0.5) {
+          // Aus dem Versteck zerren und abknallen
+          pullOutTarget = p;
+        } else if (hdist < minDist) {
+          // Zum bekannten Versteck laufen
+          minDist = hdist;
+          targetPlayer = p;
+          targetPos = p.hidePos;
+        }
+      }
+      continue; // unentdeckte Verstecke schützen weiterhin
+    }
+
     const dx = p.x - granny.x;
     const dz = p.z - granny.z;
     const dist = Math.sqrt(dx * dx + dz * dz);
@@ -314,25 +366,10 @@ function updateGrannyAI(room, roomId) {
     });
 
     // 1 Treffer = K.O. → neuer Tag beginnt
-    if (dist < cfg.hitRange && !p.hidden && !p.knockedOut) {
+    if (dist < cfg.hitRange && !p.knockedOut) {
       const now = Date.now();
       if (!p.lastHitTime || now - p.lastHitTime > 2000) {
-        p.lastHitTime = now;
-        p.knockedOut = true;
-        p.day = (p.day || 1) + 1;
-        p.health = 100; // Vollheilung nach K.O.
-
-        // Kein Tageslimit – du wachst immer wieder auf
-        io.to(roomId).emit('playerKnockedOut', { id: p.id, day: p.day });
-        // Nach 4 Sekunden aufwachen (Spieler spawnt neu)
-        setTimeout(() => {
-          if (room.players[p.id]) {
-            room.players[p.id].knockedOut = false;
-            // Granny geht zurück zu Startposition nach K.O.
-            room.grannyPos = pickGrannySpawn();
-            io.to(roomId).emit('playerWokeUp', { id: p.id, day: p.day, health: 100 });
-          }
-        }, 4000);
+        knockoutPlayer(room, roomId, p);
       }
       continue;
     }
@@ -345,14 +382,29 @@ function updateGrannyAI(room, roomId) {
     if ((inVision || heard || dist < 2) && dist < minDist) {
       minDist = dist;
       targetPlayer = p;
+      targetPos = { x: p.x, z: p.z };
     }
+  }
+
+  // Aus dem Versteck zerren (hat sie gesehen, wo du dich versteckst)
+  if (pullOutTarget) {
+    io.to(roomId).emit('playerPulledOut', { id: pullOutTarget.id });
+    knockoutPlayer(room, roomId, pullOutTarget, 'pulled');
   }
 
   // Verfolgungs-Gedächtnis: auch ohne aktuelle Sicht weiterjagen
   if (!targetPlayer && room.chaseMemory && Date.now() < room.chaseMemory.until) {
-    const remembered = players.find(p => p.id === room.chaseMemory.id && !p.hidden);
-    if (remembered) targetPlayer = remembered;
-    else room.chaseMemory = null; // Spieler versteckt → Jagd abbrechen
+    const remembered = players.find(p => p.id === room.chaseMemory.id);
+    if (remembered && !remembered.hidden) {
+      targetPlayer = remembered;
+      targetPos = { x: remembered.x, z: remembered.z };
+    } else if (remembered && remembered.hidden && remembered.hideSeen && remembered.hidePos) {
+      // Versteckt, aber sie hat es gesehen → zum Versteck gehen
+      targetPlayer = remembered;
+      targetPos = remembered.hidePos;
+    } else {
+      room.chaseMemory = null; // unentdeckt versteckt → Jagd abbrechen
+    }
   }
 
   // Noise-based investigation
@@ -371,8 +423,9 @@ function updateGrannyAI(room, roomId) {
   } else if (targetPlayer) {
     room.grannyState = 'chase';
     room.grannyTarget = targetPlayer.id;
-    const dx = targetPlayer.x - granny.x;
-    const dz = targetPlayer.z - granny.z;
+    const tp = targetPos || { x: targetPlayer.x, z: targetPlayer.z };
+    const dx = tp.x - granny.x;
+    const dz = tp.z - granny.z;
     const dist = Math.sqrt(dx * dx + dz * dz);
     if (dist > 0.5) {
       // Grundtempo aus Schwierigkeitsgrad + pro Tag etwas schneller

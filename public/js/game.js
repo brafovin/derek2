@@ -819,6 +819,21 @@ class Game {
     }, 300);
   }
 
+  onPulledOut() {
+    // Granny hat dich im Versteck gefunden und zerrt dich heraus
+    if (this.player) {
+      this.player.hidden = false;
+      this.player.hidingSpotId = null;
+      const hi = document.getElementById('hidden-indicator');
+      if (hi) hi.style.display = 'none';
+    }
+    this.showMessage('👵 Granny hat dich im Versteck gefunden!', 2500, '#ff2200');
+    AudioManager.playGrannyLaugh();
+    document.body.classList.add('screen-shake');
+    setTimeout(() => document.body.classList.remove('screen-shake'), 500);
+    // Der folgende playerKnockedOut-Event löst den Jumpscare aus
+  }
+
   onWokeUp(day, health) {
     if (!this.player) return;
 
