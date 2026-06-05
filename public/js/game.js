@@ -496,7 +496,7 @@ class Game {
     const day = this.currentDay || 1;
     const dayColor = day >= 4 ? '#ff4400' : day >= 3 ? '#ffaa00' : '#aaaaaa';
     document.getElementById('timer-display').innerHTML =
-      `<span style="color:${dayColor}">TAG ${day}/5</span> &nbsp;⏱️ ${m}:${s}`;
+      `<span style="color:${dayColor}">TAG ${day}</span> &nbsp;⏱️ ${m}:${s}`;
   }
 
   updateGrannyHUD(data) {
@@ -792,9 +792,8 @@ class Game {
       flash.remove();
       // K.O. Screen anzeigen
       document.getElementById('ko-day-number').textContent = day;
-      document.getElementById('ko-title').textContent = day > 4 ? 'LETZTER TAG!' : 'K.O.!';
-      document.getElementById('ko-text').textContent =
-        day > 4 ? 'Nächstes Mal ist es vorbei!' : 'Granny hat dich erwischt...';
+      document.getElementById('ko-title').textContent = 'K.O.!';
+      document.getElementById('ko-text').textContent = 'Granny hat dich erwischt...';
       document.getElementById('knockout-screen').style.display = 'flex';
 
       // Countdown

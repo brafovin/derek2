@@ -306,27 +306,17 @@ function updateGrannyAI(room, roomId) {
         p.day = (p.day || 1) + 1;
         p.health = 100; // Vollheilung nach K.O.
 
-        if (p.day > 5) {
-          // Nach Tag 5 ist es Game Over
-          p.caught = true;
-          io.to(roomId).emit('playerCaught', { id: p.id, name: p.name });
-          const allDone = Object.values(room.players).every(pl => pl.escaped || pl.caught);
-          if (allDone) {
-            room.gameOver = true;
-            io.to(roomId).emit('gameOver', { won: false });
+        // Kein Tageslimit – du wachst immer wieder auf
+        io.to(roomId).emit('playerKnockedOut', { id: p.id, day: p.day });
+        // Nach 4 Sekunden aufwachen (Spieler spawnt neu)
+        setTimeout(() => {
+          if (room.players[p.id]) {
+            room.players[p.id].knockedOut = false;
+            // Granny geht zurück zu Startposition nach K.O.
+            room.grannyPos = pickGrannySpawn();
+            io.to(roomId).emit('playerWokeUp', { id: p.id, day: p.day, health: 100 });
           }
-        } else {
-          io.to(roomId).emit('playerKnockedOut', { id: p.id, day: p.day });
-          // Nach 4 Sekunden aufwachen (Spieler spawnt neu)
-          setTimeout(() => {
-            if (room.players[p.id]) {
-              room.players[p.id].knockedOut = false;
-              // Granny geht zurück zu Startposition nach K.O.
-              room.grannyPos = pickGrannySpawn();
-              io.to(roomId).emit('playerWokeUp', { id: p.id, day: p.day, health: 100 });
-            }
-          }, 4000);
-        }
+        }, 4000);
       }
       continue;
     }
@@ -421,19 +411,15 @@ function updateGrannyAI(room, roomId) {
           p.knockedOut = true;
           p.day = (p.day || 1) + 1;
           p.health = 100;
-          if (p.day > 5) {
-            p.caught = true;
-            io.to(roomId).emit('playerCaught', { id: p.id, name: p.name });
-          } else {
-            io.to(roomId).emit('playerKnockedOut', { id: p.id, day: p.day, cause: 'trap' });
-            setTimeout(() => {
-              if (room.players[p.id]) {
-                room.players[p.id].knockedOut = false;
-                room.grannyPos = pickGrannySpawn();
-                io.to(roomId).emit('playerWokeUp', { id: p.id, day: p.day, health: 100 });
-              }
-            }, 4000);
-          }
+          // Kein Tageslimit – du wachst immer wieder auf
+          io.to(roomId).emit('playerKnockedOut', { id: p.id, day: p.day, cause: 'trap' });
+          setTimeout(() => {
+            if (room.players[p.id]) {
+              room.players[p.id].knockedOut = false;
+              room.grannyPos = pickGrannySpawn();
+              io.to(roomId).emit('playerWokeUp', { id: p.id, day: p.day, health: 100 });
+            }
+          }, 4000);
         }
       }
     }
