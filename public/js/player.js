@@ -93,6 +93,8 @@ class Player {
     }
 
     if (nearest.type === 'item') {
+      // Sofort lokal aufheben (robust), Server zusätzlich benachrichtigen
+      window.game.pickupItemLocal(nearest);
       window.game.network.pickupItem(nearest.id);
     } else if (nearest.type === 'door') {
       const activeItem = this.inventory[this.activeSlot];

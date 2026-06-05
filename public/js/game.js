@@ -14,6 +14,7 @@ class Game {
     this.interactables = [];
     this.hidingSpots = [];
     this.itemMeshes = {};
+    this._pickedItems = new Set(); // verhindert doppeltes Aufheben (lokal + Server-Echo)
     this.plankMeshes = {};
     this.players = {};
     this.roomId = null;
@@ -825,25 +826,51 @@ class Game {
     });
   }
 
-  onItemPickedUp({ itemId, item }) {
-    // Remove mesh from scene
+  // Lokales, sofortiges Aufheben (robust, unabhängig vom Server-Roundtrip)
+  pickupItemLocal(interactable) {
+    if (!interactable || this._pickedItems.has(interactable.id)) return;
+    this._pickedItems.add(interactable.id);
+
+    const itemId = interactable.id;
+    const itemType = interactable.itemType;
+
+    // Mesh entfernen
     const mesh = this.itemMeshes[itemId];
     if (mesh) {
       mesh.userData.pickedUp = true;
       this.scene.remove(mesh);
       delete this.itemMeshes[itemId];
     }
-    // Remove from interactables
+    // Aus Interaktionsliste entfernen
     const idx = this.interactables.findIndex(i => i.id === itemId);
     if (idx >= 0) this.interactables.splice(idx, 1);
 
-    // Add to player inventory
+    // Ins Inventar legen
+    this.player.addItem(itemType);
+
+    const names = { hammer: '🔨 Hammer', key: '🗝️ Schlüssel', screwdriver: '🔧 Schraubenzieher', wirecutters: '✂️ Drahtschneider' };
+    this.showMessage(`${names[itemType] || itemType} aufgehoben!`);
+    this.network.makeNoise(this.player.pos.x, this.player.pos.z, 2);
+  }
+
+  onItemPickedUp({ itemId, item }) {
+    // Server-Bestätigung – nur ausführen, wenn nicht schon lokal aufgehoben
+    if (this._pickedItems.has(itemId)) return;
+    this._pickedItems.add(itemId);
+
+    const mesh = this.itemMeshes[itemId];
+    if (mesh) {
+      mesh.userData.pickedUp = true;
+      this.scene.remove(mesh);
+      delete this.itemMeshes[itemId];
+    }
+    const idx = this.interactables.findIndex(i => i.id === itemId);
+    if (idx >= 0) this.interactables.splice(idx, 1);
+
     this.player.addItem(item.type);
 
     const names = { hammer: '🔨 Hammer', key: '🗝️ Schlüssel', screwdriver: '🔧 Schraubenzieher', wirecutters: '✂️ Drahtschneider' };
     this.showMessage(`${names[item.type] || item.type} aufgehoben!`);
-
-    // Noise for picking up
     this.network.makeNoise(this.player.pos.x, this.player.pos.z, 2);
   }
 
