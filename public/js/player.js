@@ -295,13 +295,7 @@ class Player {
 
   setHealth(hp) {
     this.health = hp;
-    const bar = document.getElementById('health-bar');
-    const text = document.getElementById('health-text');
-    bar.style.width = hp + '%';
-    bar.style.background = hp > 50 ? 'linear-gradient(to right, #ff0000, #ff4400)' :
-                           hp > 25 ? 'linear-gradient(to right, #ff6600, #ff8800)' :
-                                     'linear-gradient(to right, #ff0000, #ff0000)';
-    text.textContent = hp;
+    // HP-Leiste entfernt – kein UI-Update nötig
   }
 
   addOtherPlayer(id, data) {

@@ -24,6 +24,9 @@ function createRoom(roomId) {
     items: getDefaultItems(),
     doors: getDefaultDoors(),
     noise: [],
+    bearTraps: [],          // Bärenfallen die Granny dropt
+    bearTrapCounter: 0,
+    grannyTrapTimer: 0,     // wann sie die nächste falle dropt
     gameStarted: false,
     gameOver: false,
     escaped: false,
@@ -315,6 +318,59 @@ function updateGrannyAI(room, roomId) {
     // Keep granny in bounds
     room.grannyPos.x = Math.max(-18, Math.min(18, room.grannyPos.x));
     room.grannyPos.z = Math.max(-18, Math.min(18, room.grannyPos.z));
+  }
+
+  // ── Bärenfallen droppen ──
+  room.grannyTrapTimer = (room.grannyTrapTimer || 0) + 100; // +100ms pro tick
+  const maxDay3 = Math.max(...Object.values(room.players).map(p => p.day || 1));
+  // Alle 12s in Tag 1, alle 8s in Tag 2, alle 5s ab Tag 3
+  const trapInterval = Math.max(5000, 12000 - (maxDay3 - 1) * 2000);
+  if (room.grannyTrapTimer >= trapInterval && room.bearTraps.length < 12) {
+    room.grannyTrapTimer = 0;
+    const trapId = 'trap_' + (++room.bearTrapCounter);
+    const trap = {
+      id: trapId,
+      x: room.grannyPos.x + (Math.random() - 0.5) * 2,
+      z: room.grannyPos.z + (Math.random() - 0.5) * 2,
+      armed: true,
+      droppedAt: Date.now()
+    };
+    room.bearTraps.push(trap);
+    io.to(roomId).emit('bearTrapDropped', trap);
+  }
+
+  // ── Bärenfallen prüfen ob Spieler drauftritt ──
+  for (const p of players) {
+    if (p.hidden || p.knockedOut) continue;
+    for (const trap of room.bearTraps) {
+      if (!trap.armed) continue;
+      const tdx = p.x - trap.x, tdz = p.z - trap.z;
+      if (Math.sqrt(tdx*tdx + tdz*tdz) < 0.45) {
+        trap.armed = false;
+        io.to(roomId).emit('bearTrapTriggered', { trapId: trap.id, playerId: p.id });
+        // K.O. durch Falle
+        const now2 = Date.now();
+        if (!p.lastHitTime || now2 - p.lastHitTime > 2000) {
+          p.lastHitTime = now2;
+          p.knockedOut = true;
+          p.day = (p.day || 1) + 1;
+          p.health = 100;
+          if (p.day > 5) {
+            p.caught = true;
+            io.to(roomId).emit('playerCaught', { id: p.id, name: p.name });
+          } else {
+            io.to(roomId).emit('playerKnockedOut', { id: p.id, day: p.day, cause: 'trap' });
+            setTimeout(() => {
+              if (room.players[p.id]) {
+                room.players[p.id].knockedOut = false;
+                room.grannyPos = { x: 5, y: 0, z: 5 };
+                io.to(roomId).emit('playerWokeUp', { id: p.id, day: p.day, health: 100 });
+              }
+            }, 4000);
+          }
+        }
+      }
+    }
   }
 
   io.to(roomId).emit('grannyUpdate', {

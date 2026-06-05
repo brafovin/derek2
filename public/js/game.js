@@ -415,7 +415,96 @@ class Game {
     // Wird nicht mehr benutzt (1-Hit K.O. System)
   }
 
-  onKnockedOut(day) {
+  spawnBearTrap(data) {
+    const trapGroup = new THREE.Group();
+
+    // Basis (flache Platte)
+    const baseMat = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+    const base = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.04, 0.5), baseMat);
+    trapGroup.add(base);
+
+    // Zwei Kiefer (Zähne)
+    const jawMat = new THREE.MeshLambertMaterial({ color: 0x444444 });
+    const toothMat = new THREE.MeshLambertMaterial({ color: 0x888888 });
+
+    const jawL = new THREE.Group();
+    const jawLBody = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.06, 0.14), jawMat);
+    jawL.add(jawLBody);
+    // Zähne oben links
+    for (let i = 0; i < 4; i++) {
+      const tooth = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.1, 0.04), toothMat);
+      tooth.position.set(-0.18 + i * 0.12, 0.08, 0);
+      jawL.add(tooth);
+    }
+    jawL.position.set(0, 0.05, -0.14);
+    jawL.rotation.x = -0.3; // leicht offen
+    trapGroup.add(jawL);
+
+    const jawR = jawL.clone();
+    jawR.position.set(0, 0.05, 0.14);
+    jawR.rotation.x = 0.3;
+    trapGroup.add(jawR);
+
+    // Feder in der Mitte
+    const springMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+    const spring = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.015, 6, 12), springMat);
+    spring.rotation.x = Math.PI / 2;
+    spring.position.y = 0.04;
+    trapGroup.add(spring);
+
+    // Blut-Fleck unter der Falle
+    const bloodGeo = new THREE.CylinderGeometry(0.3, 0.25, 0.01, 10);
+    const bloodMesh = new THREE.Mesh(bloodGeo,
+      new THREE.MeshLambertMaterial({ color: 0x440000, transparent: true, opacity: 0.7 }));
+    bloodMesh.position.y = -0.01;
+    trapGroup.add(bloodMesh);
+
+    trapGroup.position.set(data.x, 0.02, data.z);
+    trapGroup.rotation.y = Math.random() * Math.PI;
+    trapGroup.userData.trapId = data.id;
+    trapGroup.userData.armed = true;
+    this.scene.add(trapGroup);
+
+    if (!this.bearTrapMeshes) this.bearTrapMeshes = {};
+    this.bearTrapMeshes[data.id] = trapGroup;
+
+    // Kurzes Metall-Geräusch (Falle auslegen)
+    AudioManager.tone(300, 0.15, 'square', 0.15);
+    AudioManager.tone(200, 0.1, 'square', 0.1);
+  }
+
+  triggerBearTrap(trapId, isLocalPlayer) {
+    const mesh = this.bearTrapMeshes && this.bearTrapMeshes[trapId];
+    if (mesh) {
+      mesh.userData.armed = false;
+      // Kiefer zuklappen Animation
+      mesh.traverse(obj => {
+        if (obj.isGroup && obj !== mesh) {
+          obj.rotation.x = 0;
+        }
+      });
+      // Blut erscheint
+      const bloodMat = new THREE.MeshLambertMaterial({ color: 0x660000 });
+      const blood = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.3, 0.015, 10), bloodMat);
+      blood.position.copy(mesh.position);
+      blood.position.y = 0.008;
+      this.scene.add(blood);
+    }
+
+    if (isLocalPlayer) {
+      // Metallisches SNAP + Schrei
+      AudioManager.tone(800, 0.05, 'square', 0.8);
+      AudioManager.tone(400, 0.1, 'square', 0.5);
+      AudioManager.playScream();
+      document.body.classList.add('screen-shake');
+      setTimeout(() => document.body.classList.remove('screen-shake'), 500);
+      this.showMessage('🪤 BÄRENFALLE! K.O.!', 3000, '#ff2200');
+    } else {
+      AudioManager.tone(600, 0.05, 'square', 0.3);
+    }
+  }
+
+  onKnockedOut(day, cause) {
     if (!this.player) return;
     this.player.alive = false;
     this.currentDay = day;
@@ -424,9 +513,13 @@ class Game {
     document.body.classList.remove('danger-vignette');
     document.exitPointerLock();
 
-    // K.O. Sound
     AudioManager.playScream();
     AudioManager.tone(100, 1.5, 'sine', 0.4);
+
+    const isTrap = cause === 'trap';
+    document.getElementById('ko-text').textContent = isTrap
+      ? '🪤 Du bist in eine Bärenfalle getreten!'
+      : '🪚 Grannys Kettensäge hat dich erwischt...';
 
     // Schwarzer Flash
     const flash = document.createElement('div');

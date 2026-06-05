@@ -64,10 +64,19 @@ class NetworkManager {
 
     this.socket.on('playerKnockedOut', (data) => {
       if (data.id === this.playerId) {
-        this.game.onKnockedOut(data.day);
+        this.game.onKnockedOut(data.day, data.cause);
       } else {
-        this.game.showMessage(`💀 ${data.id.slice(0,6)}... wurde K.O. geschlagen! Tag ${data.day}`, 3000, '#ff4400');
+        const cause = data.cause === 'trap' ? '🪤 Bärenfalle!' : '🪚 Kettensäge!';
+        this.game.showMessage(`💀 Mitspieler K.O. durch ${cause} – Tag ${data.day}`, 3000, '#ff4400');
       }
+    });
+
+    this.socket.on('bearTrapDropped', (data) => {
+      this.game.spawnBearTrap(data);
+    });
+
+    this.socket.on('bearTrapTriggered', (data) => {
+      this.game.triggerBearTrap(data.trapId, data.playerId === this.playerId);
     });
 
     this.socket.on('playerWokeUp', (data) => {

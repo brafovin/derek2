@@ -7,66 +7,151 @@ const HouseBuilder = (() => {
   const interactables = [];
   const hidingSpots = [];
 
-  function loadTextures(loader) {
-    // Procedural textures via canvas
-    textures.wall = makeCanvasTexture(128, 128, (ctx) => {
-      ctx.fillStyle = '#c8b89a';
-      ctx.fillRect(0, 0, 128, 128);
-      // Brick pattern
-      for (let y = 0; y < 128; y += 16) {
-        for (let x = 0; x < 128; x += 32) {
-          const ox = (Math.floor(y / 16) % 2) * 16;
-          ctx.strokeStyle = '#9a8870';
-          ctx.lineWidth = 1;
-          ctx.strokeRect(x + ox + 1, y + 1, 30, 14);
-          ctx.fillStyle = `hsl(30,25%,${65 + Math.random()*10}%)`;
-          ctx.fillRect(x + ox + 2, y + 2, 28, 12);
+  function loadTextures() {
+    // === VERWÜSTETE WAND - rissiges, dreckiges Mauerwerk ===
+    textures.wall = makeCanvasTexture(256, 256, (ctx) => {
+      // Basis: schmutziges Grau-Beige
+      ctx.fillStyle = '#4a4035';
+      ctx.fillRect(0, 0, 256, 256);
+      // Ziegelreihen - dunkel und abgenutzt
+      for (let y = 0; y < 256; y += 18) {
+        for (let x = 0; x < 256; x += 38) {
+          const ox = (Math.floor(y / 18) % 2) * 19;
+          const shade = 28 + Math.floor(Math.random() * 12);
+          ctx.fillStyle = `hsl(25,15%,${shade}%)`;
+          ctx.fillRect(x + ox + 1, y + 1, 36, 16);
         }
       }
-    });
-    textures.floor = makeCanvasTexture(128, 128, (ctx) => {
-      ctx.fillStyle = '#6b5a3e';
-      ctx.fillRect(0, 0, 128, 128);
-      // Wood planks
-      for (let y = 0; y < 128; y += 20) {
-        ctx.fillStyle = `hsl(30,40%,${25 + Math.random()*10}%)`;
-        ctx.fillRect(0, y + 1, 128, 18);
-        ctx.strokeStyle = '#3a2a15';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(0, y, 128, 19);
+      // Risse
+      ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+      ctx.lineWidth = 1.5;
+      for (let i = 0; i < 8; i++) {
+        ctx.beginPath();
+        let cx = Math.random() * 256, cy = Math.random() * 256;
+        ctx.moveTo(cx, cy);
+        for (let j = 0; j < 6; j++) {
+          cx += (Math.random() - 0.5) * 30;
+          cy += Math.random() * 20;
+          ctx.lineTo(cx, cy);
+        }
+        ctx.stroke();
+      }
+      // Blutspritzer
+      for (let i = 0; i < 4; i++) {
+        if (Math.random() < 0.5) {
+          ctx.fillStyle = `rgba(120,0,0,${0.3 + Math.random()*0.4})`;
+          ctx.beginPath();
+          ctx.ellipse(Math.random()*256, Math.random()*256, 3+Math.random()*12, 2+Math.random()*6, Math.random()*Math.PI, 0, Math.PI*2);
+          ctx.fill();
+        }
+      }
+      // Schimmel / Verfärbung
+      for (let i = 0; i < 6; i++) {
+        const grd = ctx.createRadialGradient(Math.random()*256,Math.random()*256,0,Math.random()*256,Math.random()*256,30+Math.random()*40);
+        grd.addColorStop(0, 'rgba(20,30,10,0.4)');
+        grd.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = grd;
+        ctx.fillRect(0,0,256,256);
       }
     });
-    textures.ceiling = makeCanvasTexture(64, 64, (ctx) => {
-      ctx.fillStyle = '#d4cfc8';
-      ctx.fillRect(0, 0, 64, 64);
-      // Stains
+
+    // === VERWÜSTETER BODEN - aufgebrochene, blutige Dielen ===
+    textures.floor = makeCanvasTexture(256, 256, (ctx) => {
+      ctx.fillStyle = '#2a1f14';
+      ctx.fillRect(0, 0, 256, 256);
+      // Holzdielen – dunkel, vermodert
+      for (let y = 0; y < 256; y += 22) {
+        const shade = 15 + Math.floor(Math.random() * 10);
+        ctx.fillStyle = `hsl(28,35%,${shade}%)`;
+        ctx.fillRect(0, y + 1, 256, 20);
+        // Holzmaserung
+        ctx.strokeStyle = `rgba(0,0,0,0.3)`;
+        ctx.lineWidth = 1;
+        for (let lx = 0; lx < 256; lx += 40 + Math.random()*20) {
+          ctx.beginPath();
+          ctx.moveTo(lx, y);
+          ctx.bezierCurveTo(lx+5, y+5, lx+10, y+15, lx+2, y+22);
+          ctx.stroke();
+        }
+        // Trennlinie
+        ctx.strokeStyle = '#0a0805';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(256, y); ctx.stroke();
+      }
+      // Blutlachen
       for (let i = 0; i < 5; i++) {
-        ctx.fillStyle = `rgba(100,80,60,${0.05 + Math.random()*0.1})`;
+        if (Math.random() < 0.6) {
+          const grd = ctx.createRadialGradient(Math.random()*256,Math.random()*256,0,Math.random()*256,Math.random()*256,8+Math.random()*20);
+          grd.addColorStop(0, 'rgba(140,0,0,0.8)');
+          grd.addColorStop(0.6, 'rgba(80,0,0,0.4)');
+          grd.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = grd;
+          ctx.fillRect(0,0,256,256);
+        }
+      }
+      // Aufgebrochene Stellen
+      ctx.strokeStyle = 'rgba(0,0,0,0.8)';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 4; i++) {
+        const sx = Math.random()*256, sy = Math.random()*256;
+        ctx.beginPath(); ctx.moveTo(sx,sy);
+        ctx.lineTo(sx+10+Math.random()*20, sy+5+Math.random()*15);
+        ctx.lineTo(sx-5+Math.random()*15, sy+15+Math.random()*20);
+        ctx.stroke();
+      }
+    });
+
+    // === DECKE - vergilbt, schimmelfleckig ===
+    textures.ceiling = makeCanvasTexture(128, 128, (ctx) => {
+      ctx.fillStyle = '#3a3530';
+      ctx.fillRect(0, 0, 128, 128);
+      // Wasserflecken
+      for (let i = 0; i < 8; i++) {
+        const grd = ctx.createRadialGradient(Math.random()*128,Math.random()*128,0,Math.random()*128,Math.random()*128,10+Math.random()*25);
+        grd.addColorStop(0, 'rgba(60,40,20,0.6)');
+        grd.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = grd;
+        ctx.fillRect(0,0,128,128);
+      }
+      // Schimmel
+      for (let i = 0; i < 5; i++) {
+        ctx.fillStyle = `rgba(15,${20+Math.random()*20},10,${0.3+Math.random()*0.4})`;
         ctx.beginPath();
-        ctx.arc(Math.random()*64, Math.random()*64, 5+Math.random()*10, 0, Math.PI*2);
+        ctx.arc(Math.random()*128, Math.random()*128, 5+Math.random()*15, 0, Math.PI*2);
         ctx.fill();
       }
     });
+
+    // === TÜR - verwittert, zerkratzt ===
     textures.door = makeCanvasTexture(64, 128, (ctx) => {
-      ctx.fillStyle = '#4a2e0e';
+      ctx.fillStyle = '#1e1208';
       ctx.fillRect(0, 0, 64, 128);
-      // Panels
-      ctx.fillStyle = '#5a3a18';
-      ctx.fillRect(5, 5, 54, 50);
-      ctx.fillRect(5, 65, 54, 58);
-      ctx.strokeStyle = '#2a1a08';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(5, 5, 54, 50);
-      ctx.strokeRect(5, 65, 54, 58);
-    });
-    textures.plank = makeCanvasTexture(128, 32, (ctx) => {
-      ctx.fillStyle = '#6b3c1a';
-      ctx.fillRect(0, 0, 128, 32);
-      ctx.strokeStyle = '#3a1a08';
-      ctx.lineWidth = 2;
-      for (let i = 0; i < 3; i++) {
-        ctx.strokeRect(2, 2+i*10, 124, 8);
+      ctx.fillStyle = '#2a180a';
+      ctx.fillRect(4, 4, 56, 52); ctx.fillRect(4, 64, 56, 60);
+      ctx.strokeStyle = '#0a0602'; ctx.lineWidth = 2;
+      ctx.strokeRect(4, 4, 56, 52); ctx.strokeRect(4, 64, 56, 60);
+      // Kratzer
+      ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1;
+      for (let i = 0; i < 6; i++) {
+        ctx.beginPath();
+        const sx = Math.random()*64;
+        ctx.moveTo(sx, Math.random()*128);
+        ctx.lineTo(sx + (Math.random()-0.5)*20, Math.random()*128);
+        ctx.stroke();
       }
+      // Blut-Handabdruck Andeutung
+      ctx.fillStyle = 'rgba(100,0,0,0.3)';
+      ctx.beginPath(); ctx.arc(35, 80, 8, 0, Math.PI*2); ctx.fill();
+    });
+
+    textures.plank = makeCanvasTexture(128, 32, (ctx) => {
+      ctx.fillStyle = '#3a1a08';
+      ctx.fillRect(0, 0, 128, 32);
+      ctx.strokeStyle = '#1a0a04'; ctx.lineWidth = 2;
+      for (let i = 0; i < 3; i++) ctx.strokeRect(2, 2+i*10, 124, 8);
+      // Nägel
+      ctx.fillStyle = '#666';
+      [10,60,118].forEach(nx => { ctx.beginPath(); ctx.arc(nx, 6, 2, 0, Math.PI*2); ctx.fill(); });
     });
   }
 
@@ -438,6 +523,9 @@ const HouseBuilder = (() => {
     // Attic access door (with planks!)
     addDoor(scene, 11.4, 0, -5, Math.PI/2, 'attic', true);
 
+    // ========== VERWÜSTUNG - Schutt, Trümmer, Blut ==========
+    addWreckage(scene);
+
     // ========== LIGHTING ==========
     addLighting(scene);
 
@@ -445,6 +533,106 @@ const HouseBuilder = (() => {
     addExitDoor(scene);
 
     return { interactables, hidingSpots };
+  }
+
+  function addWreckage(scene) {
+    const debrisMat  = (c) => new THREE.MeshLambertMaterial({ color: c });
+    const bloodMat   = new THREE.MeshLambertMaterial({ color: 0x5a0000, transparent: true, opacity: 0.85 });
+    const concreteMat= new THREE.MeshLambertMaterial({ color: 0x2a2520 });
+    const woodMat    = new THREE.MeshLambertMaterial({ color: 0x2a1808 });
+
+    // ── Mauerteile/Betonbrocken am Boden ──
+    const chunkPositions = [
+      [-3,0.1,1],[-7,0.08,-3],[2,0.12,3],[5,0.1,-1],[-11,0.09,3],
+      [9,0.1,2],[-9,0.08,-10],[6,0.11,-9],[13,0.1,-6],[-7,0.09,13],
+      [1,0.1,11],[-4,0.11,9],[16,0.08,-3],[3,0.12,-8]
+    ];
+    chunkPositions.forEach(([x,y,z]) => {
+      const w = 0.15+Math.random()*0.5, h = 0.08+Math.random()*0.18, d = 0.15+Math.random()*0.45;
+      const m = box(scene, w, h, d, x+(Math.random()-.5)*.4, y, z+(Math.random()-.5)*.4, concreteMat, false);
+      m.rotation.y = Math.random()*Math.PI;
+      m.rotation.z = (Math.random()-.5)*.3;
+    });
+
+    // ── Zerbrochene Holzplanken ──
+    const plankPos = [
+      [-6,0.04,2,0.4],[3,0.04,-2,0.9],[8,0.04,3,0.2],
+      [-10,0.04,-6,1.1],[-2,0.04,8,0.7],[14,0.04,-7,0.3]
+    ];
+    plankPos.forEach(([x,y,z,rot]) => {
+      const p = box(scene, 0.08, 0.06, 0.8+Math.random()*0.6, x, y, z, woodMat, false);
+      p.rotation.y = rot;
+    });
+
+    // ── Blutlachen (flache Scheiben am Boden) ──
+    const bloodPos = [
+      [1,0.02,1], [-8,0.02,0], [7,0.02,-7], [-5,0.02,-9],
+      [0,0.02,9],  [15,0.02,-5],[-8,0.02,12]
+    ];
+    bloodPos.forEach(([x,y,z]) => {
+      const r = 0.3 + Math.random()*0.8;
+      const geo = new THREE.CylinderGeometry(r, r*0.8, 0.02, 12);
+      const mesh = new THREE.Mesh(geo, bloodMat);
+      mesh.scale.x = 0.6 + Math.random()*0.8;
+      mesh.position.set(x, y, z);
+      scene.add(mesh);
+      // Blutspritzer-Tropfen drumherum
+      for (let i = 0; i < 4; i++) {
+        const sr = 0.04+Math.random()*0.1;
+        const sg = new THREE.CylinderGeometry(sr,sr,0.015,8);
+        const sm = new THREE.Mesh(sg, bloodMat);
+        sm.position.set(x+(Math.random()-.5)*r*2.5, 0.015, z+(Math.random()-.5)*r*2.5);
+        scene.add(sm);
+      }
+    });
+
+    // ── Wandrisse / abgeplatzter Putz (flache Boxen an Wänden) ──
+    const crackMat = new THREE.MeshLambertMaterial({ color: 0x111008 });
+    const cracks = [
+      [-12,1.5,0,0.05,1.2,0.4,0], [12,1.2,0,0.05,0.8,0.3,0],
+      [0,1.0,-3,0.3,0.6,0.05,0],   [-8,2.0,-4,0.05,0.5,0.3,0],
+      [8,0.8,-11.5,0.4,0.3,0.05,0],[0,1.4,3.1,0.5,0.4,0.05,0]
+    ];
+    cracks.forEach(([x,y,z,w,h,d]) => {
+      const m = box(scene, w,h,d, x,y,z, crackMat, false);
+      m.rotation.z = (Math.random()-.5)*.4;
+    });
+
+    // ── Herunterhängende Kabel / Drähte ──
+    const wireMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
+    [[0,3.2,0],[8,3.2,-8],[-8,3.2,-8]].forEach(([x,y,z]) => {
+      for (let i = 0; i < 3; i++) {
+        const wire = box(scene, 0.02, 0.4+Math.random()*0.8, 0.02,
+          x+(Math.random()-.5)*1.5, y-0.2-Math.random()*0.5, z+(Math.random()-.5)*1.5, wireMat, false);
+        wire.rotation.z = (Math.random()-.5)*.5;
+      }
+    });
+
+    // ── Umgeworfene Möbelreste ──
+    const furnitureMat = new THREE.MeshLambertMaterial({ color: 0x1a1008 });
+    // Zerbrochener Tisch (auf Seite liegend)
+    const bt = box(scene, 1.0, 0.05, 0.8, -3, 0.3, 3, furnitureMat, false);
+    bt.rotation.z = Math.PI/2 + 0.2;
+    bt.rotation.y = 0.8;
+    // Stuhl umgeworfen
+    const bc = box(scene, 0.45, 0.04, 0.45, 4, 0.22, -3, furnitureMat, false);
+    bc.rotation.x = Math.PI/2;
+    bc.rotation.y = 1.2;
+    // Bücherregal umgefallen
+    const bsh = box(scene, 0.15, 1.8, 1.0, 6, 0.07, 2, furnitureMat, false);
+    bsh.rotation.z = Math.PI/2;
+
+    // ── Zerbrochenes Glas / Scherben ──
+    const glassMat = new THREE.MeshLambertMaterial({ color: 0x334455, transparent:true, opacity:0.5 });
+    [[-4,0.01,-1],[9,0.01,1],[2,0.01,-10]].forEach(([x,y,z]) => {
+      for (let i = 0; i < 6; i++) {
+        const sg = new THREE.BoxGeometry(0.05+Math.random()*0.12, 0.015, 0.04+Math.random()*0.1);
+        const sm = new THREE.Mesh(sg, glassMat);
+        sm.position.set(x+(Math.random()-.5)*.5, y, z+(Math.random()-.5)*.5);
+        sm.rotation.y = Math.random()*Math.PI;
+        scene.add(sm);
+      }
+    });
   }
 
   function addLighting(scene) {
