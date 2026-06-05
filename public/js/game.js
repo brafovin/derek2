@@ -326,6 +326,10 @@ class Game {
     clickHint.innerHTML = '🖱️ KLICK zum Spielen<br><span style="font-size:0.85rem;color:#888">WASD = Bewegen &nbsp;|&nbsp; Maus = Umsehen<br>E = Aufheben &nbsp;|&nbsp; H = Verstecken &nbsp;|&nbsp; Shift = Schleichen</span>';
     document.body.appendChild(clickHint);
 
+    // Atmosphäre: leise Spieluhr + zufällige Schreckgeräusche
+    AudioManager.startRandomAmbience();
+    AudioManager.playMusicBox();
+
     // Start the render loop - SOFORT
     this._animate();
 
@@ -439,6 +443,9 @@ class Game {
       document.body.classList.add('danger-vignette');
       AudioManager.setChainsawVolume(1);
       if (!wasNearby) {
+        // Granny hat dich entdeckt → harter Schreck-Sting + Spieluhr stoppt
+        AudioManager.playStinger();
+        AudioManager.stopMusicBox();
         AudioManager.playHeartbeat(true);
         document.body.classList.add('screen-shake');
         setTimeout(() => document.body.classList.remove('screen-shake'), 400);
@@ -450,13 +457,19 @@ class Game {
       this.grannyNearby = true;
       document.body.classList.add('danger-vignette');
       AudioManager.setChainsawVolume(dist < 4 ? 0.8 : 0.3);
-      if (!wasNearby) AudioManager.playHeartbeat(false);
+      if (!wasNearby) {
+        AudioManager.playStinger();
+        AudioManager.playHeartbeat(false);
+      }
     } else {
       alert.style.display = 'none';
       this.grannyNearby = false;
       document.body.classList.remove('danger-vignette');
       AudioManager.setChainsawVolume(0);
-      if (wasNearby) AudioManager.stopHeartbeat();
+      if (wasNearby) {
+        AudioManager.stopHeartbeat();
+        AudioManager.playMusicBox(); // Spieluhr kehrt zurück, wenn Gefahr vorbei
+      }
     }
   }
 
@@ -721,6 +734,8 @@ class Game {
     this.state = 'gameover';
     AudioManager.stopChainsaw();
     AudioManager.stopHeartbeat();
+    AudioManager.stopMusicBox();
+    AudioManager.stopRandomAmbience();
     document.exitPointerLock();
 
     if (data.won) {
