@@ -730,6 +730,31 @@ const HouseBuilder = (() => {
     addFurniture(scene,15,0,-7,'barrel');
     addFurniture(scene,18,0,-1.5,'dresser');
     addFurniture(scene,21,0,-7,'painting');
+    addFurniture(scene,16.5,0,-2,'shelf');
+    addFurniture(scene,21,0,-4,'crate');
+
+    // ── Zusätzliche Möbel/Deko für vollere Räume ──
+    // Flur
+    addFurniture(scene,-2,0,3.5,'shelf');
+    addFurniture(scene,2.5,0,-2.5,'painting');
+    addFurniture(scene,2,0,3.5,'plant');
+    // Wohnzimmer extra
+    addFurniture(scene,-5,0,-2,'chair');
+    addFurniture(scene,-12.5,0,4,'nightstand');
+    // Küche extra
+    addFurniture(scene,9,0,-0.5,'chair');
+    addFurniture(scene,4,0,-2,'plant');
+    // Schlafzimmer extra
+    addFurniture(scene,-4,0,-6,'plant');
+    addFurniture(scene,-4,0,-11,'clock');
+    // Bad extra
+    addFurniture(scene,8,0,-10.5,'painting');
+    // Keller extra
+    addFurniture(scene,2,0,6,'barrel');
+    addFurniture(scene,-1,0,13,'crate');
+    // Garage extra
+    addFurniture(scene,12.5,0,9,'crate');
+    addFurniture(scene,5,0,9,'barrel');
 
     // ── Exit Tür (Ausgang) ──
     const exitMat = new THREE.MeshBasicMaterial({ color:0x003300, side:THREE.DoubleSide });

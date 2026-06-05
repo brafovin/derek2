@@ -319,6 +319,35 @@ const AudioManager = (() => {
     source.start();
   }
 
+  // ── Schrotflinten-Schuss (lauter Knall + Nachhall) ───────────────────
+  function playShotgun() {
+    if (!ctx) return;
+    // Harter Knall: kurzer Rauschimpuls durch Tiefpass
+    const dur = 0.4;
+    const bufferSize = ctx.sampleRate * dur;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      const env = Math.pow(1 - i / bufferSize, 2.5); // schneller Abfall
+      data[i] = (Math.random() * 2 - 1) * env;
+    }
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(2000, ctx.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.3);
+    const gain = ctx.createGain();
+    gain.gain.value = 0.9;
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(masterGain);
+    source.start();
+    // Tiefer Sub-Punch
+    tone(55, 0.25, 'sine', 0.7);
+    tone(90, 0.15, 'square', 0.3);
+  }
+
   // ── Schreck-Sting: kurzer, harter Akzent (z.B. wenn Granny auftaucht) ─
   function playStinger() {
     if (!ctx) return;
@@ -372,7 +401,7 @@ const AudioManager = (() => {
     init, resume, playJumpscare, playChainsaw, stopChainsaw, setChainsawVolume,
     playFootstep, playGrannyFootstep, playDoorCreak, playHammerHit, playPickup,
     playHeartbeat, stopHeartbeat, playAmbient, playScream, playGrannyLaugh,
-    playMusicBox, stopMusicBox, playCreak, playWhisper, playStinger,
+    playMusicBox, stopMusicBox, playCreak, playWhisper, playStinger, playShotgun,
     startRandomAmbience, stopRandomAmbience, noise, tone
   };
 })();

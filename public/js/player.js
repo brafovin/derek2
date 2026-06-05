@@ -78,9 +78,19 @@ class Player {
   }
 
   _interact() {
-    if (this.hidden) return;
+    if (this.hidden) {
+      // Wenn versteckt: E verlässt das Versteck wieder
+      this._toggleHide();
+      return;
+    }
     const nearest = this._findNearest();
-    if (!nearest) return;
+
+    // Kein Interaktionsobjekt? Dann auf Verstecke prüfen (E = Verstecken)
+    if (!nearest) {
+      const spot = this._findNearestHidingSpot();
+      if (spot) this._toggleHide(spot.id);
+      return;
+    }
 
     if (nearest.type === 'item') {
       window.game.network.pickupItem(nearest.id);

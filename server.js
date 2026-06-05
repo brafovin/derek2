@@ -34,14 +34,45 @@ function createRoom(roomId) {
   };
 }
 
+// Mögliche Verstecke für Items, quer durchs ganze Haus verteilt
+const ITEM_SPAWNS = [
+  { x: 12,   z: -5,  room: 'kitchen'  },
+  { x: 4.5,  z: -9,  room: 'bathroom' },
+  { x: -8,   z: 8,   room: 'basement' },
+  { x: -12,  z: 11,  room: 'basement' },
+  { x: 15,   z: -2,  room: 'attic'    },
+  { x: 20,   z: -6,  room: 'attic'    },
+  { x: -11,  z: -9,  room: 'bedroom'  },
+  { x: -5,   z: -5,  room: 'bedroom'  },
+  { x: 5,    z: 3,   room: 'garage'   },
+  { x: 11,   z: 11,  room: 'garage'   },
+  { x: -12,  z: -1,  room: 'living'   },
+  { x: -6,   z: 4,   room: 'living'   },
+  { x: 11,   z: 4,   room: 'kitchen'  },
+  { x: 0,    z: 2,   room: 'hallway'  },
+];
+
+// Wählt n unterschiedliche, zufällige Spawn-Punkte
+function pickRandomSpawns(n) {
+  const pool = ITEM_SPAWNS.slice();
+  const picked = [];
+  for (let i = 0; i < n && pool.length; i++) {
+    const idx = Math.floor(Math.random() * pool.length);
+    picked.push(pool.splice(idx, 1)[0]);
+  }
+  return picked;
+}
+
 function getDefaultItems() {
+  // Hammer, Ausgangsschlüssel und Kellerschlüssel jedes Spiel woanders
+  const [hammerPos, exitKeyPos, basementKeyPos] = pickRandomSpawns(3);
   return [
-    { id: 'hammer', type: 'hammer', x: 12, z: -5, y: 0.5, pickedUp: false, room: 'kitchen' },
-    { id: 'key_basement', type: 'key', color: 0xffaa00, x: -8, z: 8, y: 0.5, pickedUp: false, room: 'bedroom' },
-    { id: 'key_exit', type: 'key', color: 0xff0000, x: 15, z: 10, y: 0.5, pickedUp: false, room: 'attic' },
-    { id: 'screwdriver', type: 'screwdriver', x: -3, z: -12, y: 0.5, pickedUp: false, room: 'basement' },
-    { id: 'wirecutters', type: 'wirecutters', x: 5, z: 3, y: 0.5, pickedUp: false, room: 'garage' },
-    { id: 'padlock_key', type: 'key', color: 0x00aaff, x: -14, z: -2, y: 1.5, pickedUp: false, room: 'bathroom' }
+    { id: 'hammer',       type: 'hammer',                    x: hammerPos.x,     z: hammerPos.z,     y: 0.5, pickedUp: false, room: hammerPos.room },
+    { id: 'key_exit',     type: 'key', color: 0xff0000,      x: exitKeyPos.x,    z: exitKeyPos.z,    y: 0.5, pickedUp: false, room: exitKeyPos.room },
+    { id: 'key_basement', type: 'key', color: 0xffaa00,      x: basementKeyPos.x, z: basementKeyPos.z, y: 0.5, pickedUp: false, room: basementKeyPos.room },
+    { id: 'screwdriver',  type: 'screwdriver',               x: -3, z: -12, y: 0.5, pickedUp: false, room: 'basement' },
+    { id: 'wirecutters',  type: 'wirecutters',               x: 5,  z: 3,   y: 0.5, pickedUp: false, room: 'garage' },
+    { id: 'padlock_key',  type: 'key', color: 0x00aaff,      x: -14, z: -2, y: 1.5, pickedUp: false, room: 'bathroom' }
   ];
 }
 

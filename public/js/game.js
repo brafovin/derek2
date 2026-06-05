@@ -567,10 +567,10 @@ class Game {
   }
 
   _showJumpscare() {
-    // Vollbild-Schreckmoment: Grannys Fratze + blutige Sense
+    // Vollbild-Schreckmoment: Grannys Fratze + Pumpgun-Schuss
     AudioManager.resume();
+    AudioManager.playShotgun();
     AudioManager.playJumpscare();
-    AudioManager.playStinger();
 
     const overlay = document.createElement('div');
     overlay.id = 'jumpscare-overlay';
@@ -642,13 +642,29 @@ class Game {
       c.arc(Math.random() * 512, Math.random() * 512, 2 + Math.random() * 9, 0, Math.PI * 2);
       c.fill();
     }
-    // Blutige Sense quer übers Bild
-    c.strokeStyle = '#3b2410'; c.lineWidth = 14;
-    c.beginPath(); c.moveTo(40, 500); c.lineTo(420, 90); c.stroke();
-    c.strokeStyle = '#c0c0c8'; c.lineWidth = 20;
-    c.beginPath(); c.arc(420, 90, 110, Math.PI * 0.5, Math.PI * 1.15); c.stroke();
-    c.strokeStyle = 'rgba(140,0,0,0.9)'; c.lineWidth = 9;
-    c.beginPath(); c.arc(420, 90, 110, Math.PI * 0.55, Math.PI * 1.1); c.stroke();
+    // Pumpgun quer übers Bild (auf den Spieler gerichtet)
+    c.save();
+    c.translate(360, 440); c.rotate(-0.5);
+    c.fillStyle = '#222428';                       // Lauf
+    c.fillRect(-30, -16, 200, 22);
+    c.fillStyle = '#1a1c20';                        // Magazinröhre
+    c.fillRect(-30, 6, 170, 14);
+    c.fillStyle = '#4a2c14';                        // Holzschaft
+    c.fillRect(-110, -10, 90, 34);
+    c.fillStyle = '#2c1a0c';                        // Pump
+    c.fillRect(60, 2, 40, 22);
+    c.fillStyle = '#000';                           // Mündung (auf dich gerichtet)
+    c.beginPath(); c.arc(170, -5, 16, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#444';
+    c.beginPath(); c.arc(170, -5, 10, 0, Math.PI * 2); c.fill();
+    c.restore();
+    // Mündungsfeuer
+    const mf = c.createRadialGradient(430, 360, 4, 430, 360, 70);
+    mf.addColorStop(0, 'rgba(255,240,160,0.95)');
+    mf.addColorStop(0.5, 'rgba(255,120,0,0.6)');
+    mf.addColorStop(1, 'rgba(255,0,0,0)');
+    c.fillStyle = mf;
+    c.beginPath(); c.arc(430, 360, 70, 0, Math.PI * 2); c.fill();
 
     canvas.style.cssText = 'width:100vmax; height:100vmax; max-width:130vw; max-height:130vh;';
     overlay.appendChild(canvas);
@@ -696,7 +712,7 @@ class Game {
     AudioManager.tone(100, 1.5, 'sine', 0.4);
     document.getElementById('ko-text').textContent = isTrap
       ? '🪤 Du bist in eine Bärenfalle getreten!'
-      : '🔪 Grannys blutige Sense hat dich erwischt...';
+      : '💥 Grannys Pumpgun hat dich erwischt...';
 
     // Schwarzer Flash
     const flash = document.createElement('div');
