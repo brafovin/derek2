@@ -295,25 +295,22 @@ setInterval(() => {
   }
 }, 100);
 
-// Spieler K.O. schlagen (Sense/Schuss, Falle oder aus dem Versteck gezerrt)
+// Spieler K.O. schlagen – 1 Leben: sofort Game Over
 function knockoutPlayer(room, roomId, p, cause) {
   if (p.knockedOut) return;
   p.lastHitTime = Date.now();
   p.knockedOut = true;
   p.hidden = false;
   p.hideSeen = false;
-  p.day = (p.day || 1) + 1;
-  p.health = 100;
-  const payload = { id: p.id, day: p.day };
-  if (cause) payload.cause = cause;
+  p.alive = false;
+  const payload = { id: p.id, cause: cause || 'granny' };
   io.to(roomId).emit('playerKnockedOut', payload);
+  // 1 Leben: nach Jumpscare-Zeit Game Over auslösen
   setTimeout(() => {
     if (room.players[p.id]) {
-      room.players[p.id].knockedOut = false;
-      room.grannyPos = pickGrannySpawn();
-      io.to(roomId).emit('playerWokeUp', { id: p.id, day: p.day, health: 100 });
+      io.to(p.id).emit('gameOver', { won: false, cause: cause || 'granny' });
     }
-  }, 4000);
+  }, 3500);
 }
 
 function updateGrannyAI(room, roomId) {
@@ -485,22 +482,10 @@ function updateGrannyAI(room, roomId) {
       if (Math.sqrt(tdx*tdx + tdz*tdz) < 0.45) {
         trap.armed = false;
         io.to(roomId).emit('bearTrapTriggered', { trapId: trap.id, playerId: p.id });
-        // K.O. durch Falle
+        // K.O. durch Falle – 1 Leben
         const now2 = Date.now();
         if (!p.lastHitTime || now2 - p.lastHitTime > 2000) {
-          p.lastHitTime = now2;
-          p.knockedOut = true;
-          p.day = (p.day || 1) + 1;
-          p.health = 100;
-          // Kein Tageslimit – du wachst immer wieder auf
-          io.to(roomId).emit('playerKnockedOut', { id: p.id, day: p.day, cause: 'trap' });
-          setTimeout(() => {
-            if (room.players[p.id]) {
-              room.players[p.id].knockedOut = false;
-              room.grannyPos = pickGrannySpawn();
-              io.to(roomId).emit('playerWokeUp', { id: p.id, day: p.day, health: 100 });
-            }
-          }, 4000);
+          knockoutPlayer(room, roomId, p, 'trap');
         }
       }
     }

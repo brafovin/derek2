@@ -773,50 +773,34 @@ class Game {
   onKnockedOut(day, cause) {
     if (!this.player) return;
     this.player.alive = false;
-    this.currentDay = day;
     AudioManager.stopChainsaw();
     AudioManager.stopHeartbeat();
     AudioManager.stopMusicBox();
+    AudioManager.stopRandomAmbience && AudioManager.stopRandomAmbience();
     document.body.classList.remove('danger-vignette');
     document.exitPointerLock();
 
     const isTrap = cause === 'trap';
 
-    // Bei Granny-Angriff: fetter Jumpscare mit Sense
+    // Jumpscare bei Granny-Angriff
     if (!isTrap) {
       this._showJumpscare();
     }
 
     AudioManager.playScream();
     AudioManager.tone(100, 1.5, 'sine', 0.4);
-    document.getElementById('ko-text').textContent = isTrap
-      ? '🪤 Du bist in eine Bärenfalle getreten!'
-      : '💥 Grannys Pumpgun hat dich erwischt...';
 
-    // Schwarzer Flash
+    // Schwarzer Flash dann Game-Over-Screen
     const flash = document.createElement('div');
-    flash.style.cssText = 'position:fixed;inset:0;background:#000;z-index:9998;pointer-events:none;opacity:0;transition:opacity 0.2s';
+    flash.style.cssText = 'position:fixed;inset:0;background:#000;z-index:9998;pointer-events:none;opacity:0;transition:opacity 0.3s';
     document.body.appendChild(flash);
     setTimeout(() => { flash.style.opacity = '1'; }, 10);
 
     setTimeout(() => {
       flash.remove();
-      // K.O. Screen anzeigen
-      document.getElementById('ko-day-number').textContent = day;
-      document.getElementById('ko-title').textContent = 'K.O.!';
-      document.getElementById('ko-text').textContent = 'Granny hat dich erwischt...';
-      document.getElementById('knockout-screen').style.display = 'flex';
-
-      // Countdown
-      let sec = 4;
-      document.getElementById('ko-sec').textContent = sec;
-      const timer = setInterval(() => {
-        sec--;
-        const el = document.getElementById('ko-sec');
-        if (el) el.textContent = sec;
-        if (sec <= 0) clearInterval(timer);
-      }, 1000);
-    }, 300);
+      const subtitle = isTrap ? '🪤 Du bist in eine Bärenfalle getreten...' : '💥 Grannys Pumpgun hat dich erwischt...';
+      this.onGameOver({ won: false, cause, subtitle });
+    }, isTrap ? 600 : 3200);
   }
 
   onPulledOut() {
@@ -999,9 +983,10 @@ class Game {
       setTimeout(() => AudioManager.tone(660, 1, 'sine', 0.2), 300);
     } else {
       document.getElementById('gameover-screen').style.display = 'flex';
-      if (data.selfCaught) {
-        document.getElementById('gameover-subtitle').textContent = 'Grannys Kettensäge hat dich erwischt...';
-      }
+      const sub = data.subtitle ||
+        (data.selfCaught ? 'Grannys Pumpgun hat dich erwischt...' : 'Du hast nur ein Leben. Versuch es nochmal!');
+      document.getElementById('gameover-subtitle').textContent = sub;
+      document.getElementById('gameover-title').textContent = '☠️ GAME OVER';
     }
   }
 

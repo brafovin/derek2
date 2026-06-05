@@ -64,10 +64,10 @@ class NetworkManager {
 
     this.socket.on('playerKnockedOut', (data) => {
       if (data.id === this.playerId) {
-        this.game.onKnockedOut(data.day, data.cause);
+        this.game.onKnockedOut(0, data.cause);
       } else {
         const cause = data.cause === 'trap' ? '🪤 Bärenfalle!' : '💥 Pumpgun!';
-        this.game.showMessage(`💀 Mitspieler K.O. durch ${cause} – Tag ${data.day}`, 3000, '#ff4400');
+        this.game.showMessage(`💀 Mitspieler ausgeschieden durch ${cause}!`, 3000, '#ff4400');
       }
     });
 
