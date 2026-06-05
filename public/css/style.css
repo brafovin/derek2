@@ -327,6 +327,56 @@ body {
   text-shadow: 0 0 10px #ff0000;
 }
 
+/* Schwierigkeitsgrad-Auswahl */
+#difficulty-select {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  align-items: center;
+}
+
+#difficulty-title {
+  color: #ff5555;
+  font-size: 1.1rem;
+  letter-spacing: 0.15em;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 0 10px #800;
+}
+
+.diff-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  width: 340px;
+  background: rgba(20, 0, 0, 0.65);
+  border: 2px solid #800;
+  color: #ddd;
+  font-family: 'Courier New', monospace;
+  padding: 0.7rem 1.1rem;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.18s;
+}
+.diff-btn:hover {
+  border-color: #ff0000;
+  background: rgba(60, 0, 0, 0.85);
+  box-shadow: 0 0 18px rgba(200, 0, 0, 0.5);
+  transform: scale(1.03);
+}
+
+.diff-name {
+  font-size: 1.15rem;
+  font-weight: bold;
+  letter-spacing: 0.1em;
+  color: #ff6666;
+}
+.diff-desc {
+  font-size: 0.78rem;
+  color: #aa8888;
+}
+
 /* Spiel-Link-Banner über dem Titel */
 #game-link-banner {
   display: flex;

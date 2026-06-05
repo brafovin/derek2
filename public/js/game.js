@@ -88,8 +88,19 @@ class Game {
     // Main menu buttons
     document.getElementById('btn-solo').addEventListener('click', () => {
       AudioManager.resume();
-      document.body.classList.add('mode-chosen');
-      this._joinSolo();
+      // Schwierigkeitsgrad-Auswahl anzeigen
+      document.getElementById('difficulty-select').style.display = 'flex';
+      document.getElementById('room-input').style.display = 'none';
+      document.getElementById('create-room-info').style.display = 'none';
+    });
+
+    document.querySelectorAll('.diff-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        AudioManager.resume();
+        document.body.classList.add('mode-chosen');
+        this.difficulty = btn.dataset.diff;
+        this._joinSolo();
+      });
     });
 
     document.getElementById('btn-create').addEventListener('click', () => {
@@ -174,7 +185,7 @@ class Game {
   _joinRoom(roomId, playerName) {
     this.roomId = roomId;
     this._showLoading();
-    this.network.joinRoom(roomId, playerName);
+    this.network.joinRoom(roomId, playerName, this.difficulty || 'normal');
   }
 
   _playIntro() {

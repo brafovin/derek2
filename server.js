@@ -30,8 +30,20 @@ function createRoom(roomId) {
     gameStarted: false,
     gameOver: false,
     escaped: false,
-    startTime: null
+    startTime: null,
+    difficulty: 'normal'
   };
+}
+
+// Schwierigkeitsgrad-Einstellungen für Granny
+const DIFFICULTY = {
+  easy:      { chase: 0.038, patrol: 0.03, vision: 5,  visionAngle: 0.40, hearMul: 0.6, trapMul: 0.5,  hitRange: 1.3 },
+  normal:    { chase: 0.055, patrol: 0.05, vision: 8,  visionAngle: 0.52, hearMul: 1.0, trapMul: 1.0,  hitRange: 1.5 },
+  hard:      { chase: 0.075, patrol: 0.07, vision: 11, visionAngle: 0.65, hearMul: 1.4, trapMul: 1.6,  hitRange: 1.7 },
+  nightmare: { chase: 0.095, patrol: 0.09, vision: 14, visionAngle: 0.80, hearMul: 1.9, trapMul: 2.2,  hitRange: 1.9 },
+};
+function diffCfg(room) {
+  return DIFFICULTY[room.difficulty] || DIFFICULTY.normal;
 }
 
 // Mögliche Verstecke für Items, quer durchs ganze Haus verteilt
@@ -103,9 +115,12 @@ function getDefaultDoors() {
 io.on('connection', (socket) => {
   console.log('Player connected:', socket.id);
 
-  socket.on('joinRoom', ({ roomId, playerName }) => {
+  socket.on('joinRoom', ({ roomId, playerName, difficulty }) => {
     if (!rooms[roomId]) {
       rooms[roomId] = createRoom(roomId);
+      if (difficulty && DIFFICULTY[difficulty]) {
+        rooms[roomId].difficulty = difficulty;
+      }
     }
     const room = rooms[roomId];
     if (Object.keys(room.players).length >= 4) {
@@ -271,6 +286,7 @@ setInterval(() => {
 }, 100);
 
 function updateGrannyAI(room, roomId) {
+  const cfg = diffCfg(room);
   const granny = { x: room.grannyPos.x, z: room.grannyPos.z, angle: room.grannyAngle };
   const players = Object.values(room.players).filter(p => p.alive && !p.caught && !p.escaped);
 
@@ -286,19 +302,19 @@ function updateGrannyAI(room, roomId) {
     const dz = p.z - granny.z;
     const dist = Math.sqrt(dx * dx + dz * dz);
 
-    // Vision cone (60 degrees, 8 units)
+    // Sichtkegel (vom Schwierigkeitsgrad abhängig)
     const angleToPlayer = Math.atan2(dx, dz);
     const angleDiff = Math.abs(normalizeAngle(angleToPlayer - granny.angle));
-    const inVision = angleDiff < 0.52 && dist < 8;
+    const inVision = angleDiff < cfg.visionAngle && dist < cfg.vision;
 
-    // Hearing
+    // Gehör (Lautstärke-Reichweite je nach Schwierigkeitsgrad)
     const heard = room.noise.some(n => {
       const nd = Math.sqrt((n.x - granny.x) ** 2 + (n.z - granny.z) ** 2);
-      return nd < n.volume;
+      return nd < n.volume * cfg.hearMul;
     });
 
     // 1 Treffer = K.O. → neuer Tag beginnt
-    if (dist < 1.5 && !p.hidden && !p.knockedOut) {
+    if (dist < cfg.hitRange && !p.hidden && !p.knockedOut) {
       const now = Date.now();
       if (!p.lastHitTime || now - p.lastHitTime > 2000) {
         p.lastHitTime = now;
@@ -347,9 +363,9 @@ function updateGrannyAI(room, roomId) {
     const dz = targetPlayer.z - granny.z;
     const dist = Math.sqrt(dx * dx + dz * dz);
     if (dist > 0.5) {
-      // Granny wird pro Tag schneller
+      // Grundtempo aus Schwierigkeitsgrad + pro Tag etwas schneller
       const maxDay = Math.max(...Object.values(room.players).map(p => p.day || 1));
-      const speed = 0.055 + (maxDay - 1) * 0.015;
+      const speed = cfg.chase + (maxDay - 1) * 0.015;
       room.grannyPos.x += (dx / dist) * speed;
       room.grannyPos.z += (dz / dist) * speed;
       room.grannyAngle = Math.atan2(dx, dz);
@@ -362,7 +378,7 @@ function updateGrannyAI(room, roomId) {
       room.grannyAngle += (Math.random() - 0.5) * 0.5;
     }
     const maxDay2 = Math.max(...Object.values(room.players).map(p => p.day || 1));
-    const patrolSpeed = 0.05 + (maxDay2 - 1) * 0.01;
+    const patrolSpeed = cfg.patrol + (maxDay2 - 1) * 0.008;
     room.grannyPos.x += Math.sin(room.grannyAngle) * patrolSpeed;
     room.grannyPos.z += Math.cos(room.grannyAngle) * patrolSpeed;
 
@@ -379,8 +395,8 @@ function updateGrannyAI(room, roomId) {
   // ── Bärenfallen droppen ──
   room.grannyTrapTimer = (room.grannyTrapTimer || 0) + 100; // +100ms pro tick
   const maxDay3 = Math.max(...Object.values(room.players).map(p => p.day || 1));
-  // Alle 12s in Tag 1, alle 8s in Tag 2, alle 5s ab Tag 3
-  const trapInterval = Math.max(5000, 12000 - (maxDay3 - 1) * 2000);
+  // Fallen-Frequenz aus Schwierigkeitsgrad (höher = öfter)
+  const trapInterval = Math.max(3000, (12000 - (maxDay3 - 1) * 2000) / cfg.trapMul);
   if (room.grannyTrapTimer >= trapInterval && room.bearTraps.length < 12) {
     room.grannyTrapTimer = 0;
     const trapId = 'trap_' + (++room.bearTrapCounter);

@@ -120,9 +120,9 @@ class NetworkManager {
     });
   }
 
-  joinRoom(roomId, playerName) {
+  joinRoom(roomId, playerName, difficulty) {
     if (!this.connected) return;
-    this.socket.emit('joinRoom', { roomId, playerName });
+    this.socket.emit('joinRoom', { roomId, playerName, difficulty });
   }
 
   sendMove(x, y, z, rotY) {

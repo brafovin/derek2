@@ -50,6 +50,25 @@
       <button class="menu-btn" id="btn-create">RAUM ERSTELLEN</button>
       <button class="menu-btn" id="btn-join">RAUM BEITRETEN</button>
     </div>
+    <div id="difficulty-select" style="display:none;">
+      <p id="difficulty-title">WÄHLE DEINEN SCHWIERIGKEITSGRAD</p>
+      <button class="diff-btn" data-diff="easy">
+        <span class="diff-name">😀 LEICHT</span>
+        <span class="diff-desc">Granny ist langsam &amp; halb blind. Wenige Fallen.</span>
+      </button>
+      <button class="diff-btn" data-diff="normal">
+        <span class="diff-name">😨 NORMAL</span>
+        <span class="diff-desc">Ausgewogenes Grauen. So ist Granny gedacht.</span>
+      </button>
+      <button class="diff-btn" data-diff="hard">
+        <span class="diff-name">😱 SCHWER</span>
+        <span class="diff-desc">Schnell, scharfe Augen, viele Bärenfallen.</span>
+      </button>
+      <button class="diff-btn" data-diff="nightmare">
+        <span class="diff-name">💀 ALBTRAUM</span>
+        <span class="diff-desc">Gnadenlos schnell. Sie hört jeden Atemzug.</span>
+      </button>
+    </div>
     <div id="room-input" style="display:none;">
       <input type="text" id="room-code-input" placeholder="Raum-Code eingeben..." maxlength="6">
       <input type="text" id="player-name-input" placeholder="Dein Name..." maxlength="15">
