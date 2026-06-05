@@ -252,6 +252,7 @@ class Game {
     }
     this.interactables = result.interactables;
     this.hidingSpots = result.hidingSpots;
+    this.walls = result.collisionWalls || [];
 
     // Place items from server state
     roomState.items.forEach(item => {

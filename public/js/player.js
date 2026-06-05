@@ -195,6 +195,22 @@ class Player {
       // Simple boundary collision
       if (newX > -20 && newX < 22) this.pos.x = newX;
       if (newZ > -16 && newZ < 16) this.pos.z = newZ;
+
+      // Wall collision (circle vs AABB)
+      if (window.game && window.game.walls) {
+        for (const wall of window.game.walls) {
+          const nearX = Math.max(wall.x1, Math.min(this.pos.x, wall.x2));
+          const nearZ = Math.max(wall.z1, Math.min(this.pos.z, wall.z2));
+          const dx = this.pos.x - nearX;
+          const dz = this.pos.z - nearZ;
+          const dist = Math.sqrt(dx * dx + dz * dz);
+          if (dist < this.radius && dist > 0.0001) {
+            const push = (this.radius - dist) / dist;
+            this.pos.x += dx * push;
+            this.pos.z += dz * push;
+          }
+        }
+      }
     }
 
     // Camera immer setzen
